@@ -1,0 +1,34 @@
+{
+  "name": "xinnos-servicedev",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
+  },
+  "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
+    "ant-design-vue": "^4.0.0-rc.6",
+    "axios": "^1.7.7",
+    "core-js": "^3.8.3",
+    "frappe-gantt": "^0.6.1",
+    "highcharts": "^11.4.8",
+    "highcharts-gantt": "^0.1.7",
+    "lodash-es": "^4.17.21",
+    "pinia": "^2.2.4",
+    "vue": "^3.2.13",
+    "vue-router": "^4.0.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.5",
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^9.23.0",
+    "less": "^4.2.0",
+    "less-loader": "^12.2.0",
+    "sass-embedded": "^1.78.0",
+    "vite": "^5.3.1"
+  }
+}
