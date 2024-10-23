@@ -8,44 +8,11 @@
       type="primary"
       style="width: 200px; height: 40px"
     >
-      문서 업로드
+      선박 등록
     </a-button>
 
     <div style="display: flex; align-items: center; gap: 20px">
-      <a-card
-        style="width: 85%; height: 50px"
-        body-style="padding: 7.5px; padding-left: 0px; display: flex; align-items: center; gap: 10px;"
-      >
-        <a-dropdown>
-          <template #overlay>
-            <a-menu @click="handleMenuClick">
-              <a-menu-item v-for="item in menuItems" :key="item.key">
-                <component :is="item.icon" />
-                {{ item.label }}
-              </a-menu-item>
-            </a-menu>
-          </template>
-          <a-button
-            @click="handleButtonClick"
-            style="
-              width: 150px;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            "
-          >
-            {{ selectedMenu }}
-            <DownOutlined />
-          </a-button>
-        </a-dropdown>
-        <a-button
-          :icon="h(FilterOutlined)"
-          @click="showFilterModal"
-          style="margin-left: 10px"
-        >
-        </a-button>
-        <a-input style="margin-left: 10px" v-model:value="formState.username" />
-      </a-card>
+      
       <a-button
         :icon="h(FilterOutlined)"
         @click="showFilterModal"
@@ -55,56 +22,31 @@
       </a-button>
     </div>
 
-    <a-table :columns="columns" :data-source="filteredData" bordered>
+    <a-table :columns="columns" :data-source="filteredData" bordered @rowContextmenu="handleRowRightClick">
       <template #bodyCell="{ column, text, record }">
-        <template
-          v-if="
-            [
-              'DocId',
-              'DocName',
-              'Version',
-              'TrialId',
-              'ActicityId',
-              'Company',
-              'DocType',
-              'Department',
-              'Creator',
-              'Uploader',
-              'UploadDate',
-            ].includes(column.dataIndex)
-          "
-        >
-          <div>
-            <a-input
-              v-if="editableData[record.key]"
-              v-model:value="editableData[record.key][column.dataIndex]"
-              style="margin: -5px 0"
-            />
-            <template v-else>
-              {{ text }}
-            </template>
-          </div>
-        </template>
-        <template v-else-if="column.dataIndex === 'operation'">
-          <div class="editable-row-operations">
-            <span v-if="editableData[record.key]">
-              <a-typography-link @click="save(record.key)"
-                >Save</a-typography-link
-              >
-              <a-popconfirm
-                title="Sure to cancel?"
-                @confirm="cancel(record.key)"
-              >
-                <a>Cancel</a>
-              </a-popconfirm>
-            </span>
-            <span v-else>
-              <a @click="edit(record.key)">Edit</a>
-            </span>
-          </div>
-        </template>
-      </template>
-    </a-table>
+      <div>
+        <a-input
+          v-if="editableData[record.key]"
+          v-model:value="editableData[record.key][column.dataIndex]"
+          style="margin: -5px 0"
+        />
+        <template v-else>{{ text }}</template>
+      </div>
+    </template>
+  </a-table>
+  <!-- 우클릭 메뉴 Dropdown -->
+  <a-dropdown
+    v-model:open="contextMenuVisible"
+    :trigger="['contextmenu']"
+    :placement="'bottomLeft'"
+  >
+    <template #overlay>
+      <a-menu @click="handleMenuClick">
+        <a-menu-item key="edit">수정</a-menu-item>
+        <a-menu-item key="delete">삭제</a-menu-item>
+      </a-menu>
+    </template>
+  </a-dropdown>
   </a-space>
 
   <!-- 문서 업로드 모달 컴포넌트 -->
@@ -279,12 +221,35 @@ const handleButtonClick = (e) => {
   console.log("click left button", e);
 };
 
-// 메뉴 선택 시 호출되는 함수
-const handleMenuClick = (e) => {
-  console.log("click", e);
-  const selectedItem = menuItems.value.find((item) => item.key === e.key);
-  selectedMenu.value = selectedItem ? selectedItem.label : "Unknown";
+
+
+
+// 현재 우클릭된 Row 상태
+const currentRecord = ref(null);
+const contextMenuVisible = ref(false);
+
+// 열 클릭 이벤트
+const handleRowRightClick = (record, event) => {
+  event.preventDefault(); // 기본 우클릭 메뉴 비활성화
+  currentRecord.value = record;
+  contextMenuVisible.value = true; // 우클릭 메뉴 열기
 };
+
+// 메뉴 클릭 이벤트
+const handleMenuClick = ({ key }) => {
+  if (key === 'edit') {
+    message.info(`Editing ${currentRecord.value.DocName}`);
+  } else if (key === 'delete') {
+    message.info(`Deleting ${currentRecord.value.DocName}`);
+  }
+  contextMenuVisible.value = false; // 메뉴 닫기
+};
+
+
+
+
+
+
 
 const columns = [
   {
@@ -390,5 +355,9 @@ const handleSubmit = (submittedData) => {
 .demo-dropdown-wrap :deep(.ant-dropdown-button) {
   margin-right: 8px;
   margin-bottom: 8px;
+}
+/* 우클릭 메뉴의 위치를 조정 */
+.a-dropdown {
+  position: absolute;
 }
 </style>

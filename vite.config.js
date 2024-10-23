@@ -13,8 +13,8 @@ export default defineConfig({
     },
   },
   server: {
+    host: "0.0.0.0", // 특정 IP에 바인딩
     port: 8082,
-    host: "0.0.0.0", // 모든 IP에서 접근 가능하게 설정
     strictPort: true,
   },
 });

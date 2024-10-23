@@ -1,6 +1,7 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 
+import ScheduleShipMgmt from "../views/Schedule_ShipMgmt.vue";
 import ScheduleActivityMgmt from '../views/Schedule_ActivityMgmt.vue'
 import Schedule_ScheduleMgmt from '../views/Schedule_ScheduleMgmt.vue'
 import Digitalization_DocMgmt from '../views/Digitalization_DocMgmt.vue'
@@ -12,6 +13,7 @@ import Test_01 from '../views/Test_01.vue'
 import Test_02 from '../views/Test_02.vue'
 
 const routes = [
+  { path: '/schedule_ShipMgmt', component: ScheduleShipMgmt },
   { path: '/schedule_ActivityMgmt', component: ScheduleActivityMgmt },
   { path: '/schedule_ScheduleMgmt', component: Schedule_ScheduleMgmt },
   { path: '/digitalization_DocMgmt', component: Digitalization_DocMgmt },
