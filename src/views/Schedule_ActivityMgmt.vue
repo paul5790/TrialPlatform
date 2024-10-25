@@ -156,57 +156,27 @@ const columns = [
   {
     title: "ActivityId",
     dataIndex: "ActivityId",
-    filters: [
-      {
-        text: "A-0",
-        value: "A-0",
-      },
-      {
-        text: "A-1",
-        value: "A-1",
-      },
-      {
-        text: "A-2",
-        value: "A-2",
-      },
-    ],
-    filterMode: "tree",
-    filterSearch: true,
-    onFilter: (value, record) => record.name.startsWith(value),
-    width: "10%",
+    width: "5%",
   },
   {
     title: "ActivityName",
     dataIndex: "ActivityName",
-    filters: [
-      {
-        text: "Speed test",
-        value: "Speed test",
-      },
-      {
-        text: "Another test",
-        value: "Another test",
-      },
-    ],
-    filterMode: "tree",
-    filterSearch: true,
-    onFilter: (value, record) => record.name.startsWith(value),
     width: "15%",
   },
   {
     title: "TimeTaken",
     dataIndex: "TimeTaken",
-    width: "10%",
+    width: "5%",
   },
   {
     title: "EngineLoad",
     dataIndex: "EngineLoad",
-    width: "10%",
+    width: "5%",
   },
   {
     title: "Part",
     dataIndex: "Part",
-    width: "10%",
+    width: "7%",
   },
   {
     title: "ShipTypes",
@@ -217,11 +187,6 @@ const columns = [
     title: "TrialType",
     dataIndex: "TrialType",
     width: "15%",
-  },
-  {
-    title: "operation",
-    dataIndex: "operation",
-    width: "5%",
   },
 ];
 
@@ -259,10 +224,10 @@ const fetchData = async () => {
     response.forEach((activity, index) => {
       data.value.push({
         key: index + 1,
-        ActivityId: activity.activity_id || "",
-        ActivityName: activity.activity_name || "",
-        TimeTaken: activity.time_taken || "",
-        EngineLoad: activity.engine_load || "",
+        ActivityId: activity.activityId || "",
+        ActivityName: activity.activityName || "",
+        TimeTaken: activity.timeTaken || "",
+        EngineLoad: activity.engineLoad || "",
         Part: activity.part || "",
         ShipTypes: "ShipTypes" || "",
         TrialType: "TrialTypes" || "",

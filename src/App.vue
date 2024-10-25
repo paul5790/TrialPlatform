@@ -76,4 +76,8 @@ nav a.router-link-exact-active {
 .form-input {
   flex: 1; /* 입력 필드는 가능한 넓게 */
 }
+
+.full-width {
+  width: 100%;
+}
 </style>
