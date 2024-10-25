@@ -80,4 +80,17 @@ nav a.router-link-exact-active {
 .full-width {
   width: 100%;
 }
+
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding-bottom: 20px;
+}
+
+.top-button {
+  width: 200px;
+  height: 40px;
+}
 </style>

@@ -91,13 +91,62 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import {  ref, reactive, defineComponent, defineProps, watch } from 'vue';
+import { getAllActivities } from "../../api/Activities/Activities.js";
+import { getShipType, postShipType } from "../../api/ShipType.js";
+import { getTrialType, postTrialType } from "../../api/TrialType.js";
 
 // Props로 부모 컴포넌트에서 전달된 상태와 함수
 const props = defineProps({
   open: Boolean, // 모달 열림 상태
   formState: Object, // 폼 데이터
 });
+
+const formState = reactive({
+  activityId: "",
+  part: null,
+  activityName: "haha",
+  timeTaken: "",
+  engineLoad: "",
+});
+
+// props의 formState를 감시
+watch(
+  () => props.formState, // 감시할 대상
+  (newVal) => {
+    console.log("zz");
+    if (newVal && Object.keys(newVal).length > 0) {
+      // 새 값이 존재할 경우 복사
+      Object.assign(formState, newVal);
+    } else {
+      // 값이 없을 경우 초기 상태로 설정
+      Object.assign(formState, {
+        shipId: "",
+        shipType: null,
+        shipName: "",
+        imoNo: "",
+        yardName: "",
+        rescueCapa: "",
+      });
+    }
+  },
+  { immediate: true, deep: true } // 컴포넌트가 마운트될 때 즉시 실행
+);
+
+const VNodes = defineComponent({
+  props: {
+    vnodes: {
+      type: Object,
+      required: true,
+    },
+  },
+  render() {
+    return this.vnodes;
+  },
+});
+
+
+
 
 const emit = defineEmits(['update:open', 'submit']); // 부모에게 상태와 데이터를 전달할 이벤트
 

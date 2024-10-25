@@ -63,11 +63,25 @@
       <!-- Yard Name -->
       <div class="form-item">
         <label class="form-label">Yard Name :</label>
-        <a-input
+        <a-select
           v-model:value="formState.yardName"
-          placeholder="Enter Yard Name"
+          placeholder="Select Yard Name"
           class="form-input"
-        />
+          :options="yardListItems.map((item) => ({ value: item }))"
+        >
+          <template #dropdownRender="{ menuNode: menu }">
+            <v-nodes :vnodes="menu" />
+            <a-divider style="margin: 4px 0" />
+            <a-space style="padding: 4px 8px">
+              <a-button type="text" @click="showAddYardModal">
+                <template #icon>
+                  <plus-outlined />
+                </template>
+                + Add item
+              </a-button>
+            </a-space>
+          </template>
+        </a-select>
       </div>
 
       <!-- Doc. Type -->
@@ -122,7 +136,7 @@
     <!-- Ship Type 입력 새 모달 -->
     <a-modal
       v-model:visible="addShipType"
-      width="300px"
+      width="350px"
       title="Add New Item"
       @ok="handleAddShipType"
       @cancel="handleCancelAddShipType"
@@ -148,10 +162,10 @@
       </a-select>
     </a-modal>
 
-    <!-- 새 모달 -->
+    <!-- Trial Type 입력 새 모달-->
     <a-modal
       v-model:visible="addTrialType"
-      width="300px"
+      width="350px"
       title="Add New Item"
       @ok="handleAddTrialType"
       @cancel="handleCancelAddTrialType"
@@ -177,6 +191,23 @@
       </a-select>
     </a-modal>
 
+    <!-- Yard Name 입력 새 모달 -->
+    <a-modal
+      v-model:visible="addYard"
+      width="300px"
+      title="Add New Item"
+      @ok="handleAddYard"
+      @cancel="handleCancelAddYard"
+    >
+      <p>Please enter the new yard name:</p>
+      <a-input
+        v-model:value="newYardItem"
+        placeholder="New Yard Name"
+        class="full-width"
+        style="margin-bottom: 10px"
+      />
+    </a-modal>
+
     <template #footer>
       <a-button key="back" @click="handleCancel">Return</a-button>
       <a-button
@@ -197,6 +228,7 @@ import { getShipType, postShipType } from "../../api/ShipType.js";
 import { getTrialType, postTrialType } from "../../api/TrialType.js";
 const props = defineProps({
   open: Boolean, // 부모로부터 받는 open 상태
+  yardList: Array,
   formState: Object, // 폼 데이터 상태
 });
 
@@ -205,11 +237,25 @@ const formState = reactive({
   shipType: null,
   shipName: "",
   imoNo: "",
-  yardName: "",
+  yardName: null,
   rescueCapa: "",
 });
 
+const yardListItems = ref([]);
+
 // props의 formState를 감시
+watch(
+  () => props.yardList, // 감시할 대상
+  (newVal) => {
+    if (newVal && Array.isArray(newVal)) {
+      yardListItems.value = [...newVal]; // 변경된 값 할당
+    } else {
+      yardListItems.value = []; // 만약 값이 없거나 유효하지 않으면 빈 배열로 초기화
+    }
+  },
+  { immediate: true, deep: true } // 컴포넌트가 마운트될 때 즉시 실행
+);
+
 watch(
   () => props.formState, // 감시할 대상
   (newVal) => {
@@ -224,7 +270,7 @@ watch(
         shipType: null,
         shipName: "",
         imoNo: "",
-        yardName: "",
+        yardName: null,
         rescueCapa: "",
       });
     }
@@ -274,6 +320,7 @@ getTrialTypeList();
 
 const addShipType = ref(false); // Ship 새 모달 열림 상태
 const addTrialType = ref(false); // Trial 새 모달 열림 상태
+const addYard = ref(false); // Trial 새 모달 열림 상태
 
 const newShipTypeItem = ref(""); // Ship 새 아이템 입력 값
 const newShipTypeActId = ref([]); // Ship 새 아이템 입력 값
@@ -281,12 +328,14 @@ const newShipTypeActId = ref([]); // Ship 새 아이템 입력 값
 const newTrialTypeItem = ref(""); // Trial 새 아이템 입력 값
 const newTrialTypeActId = ref([]); // Trial 새 아이템 입력 값
 
+const newYardItem = ref(""); // Ship 새 아이템 입력 값
+
 const activityList = ref([]);
 const getActList = async () => {
   try {
     const response = await getAllActivities();
     response.forEach((activity, index) => {
-      activityList.value.push(activity.activityId);
+      activityList.value.push(`${activity.activityId}(${activity.activityName})`);
     });
   } catch (error) {
     console.error(error);
@@ -304,6 +353,11 @@ const showAddShipTypeModal = () => {
 // Trial 모달 열기 함수
 const showAddTrialTypeModal = () => {
   addTrialType.value = true;
+};
+
+// Ship 모달 열기 함수
+const showAddYardModal = () => {
+  addYard.value = true;
 };
 
 // Ship 새 아이템 추가 처리
@@ -347,6 +401,17 @@ const handleAddTrialType = async () => {
   addTrialType.value = false; // 모달 닫기
 };
 
+// Ship 새 아이템 추가 처리
+const handleAddYard = async () => {
+  if (newYardItem.value) {
+    yardListItems.value.push(newYardItem.value); // 아이템 추가
+    formState.yardName = newYardItem.value;
+    newYardItem.value = ""; // 입력 필드 초기화
+  }
+
+  addYard.value = false; // 모달 닫기
+};
+
 // Ship 모달 취소 처리
 const handleCancelAddShipType = () => {
   newShipTypeItem.value = "";
@@ -359,6 +424,12 @@ const handleCancelAddTrialType = () => {
   newTrialTypeItem.value = "";
   newTrialTypeActId.value = [];
   addTrialType.value = false; // 모달 닫기
+};
+
+// Ship 모달 취소 처리
+const handleCancelAddYard = () => {
+  newYardItem.value = "";
+  addYard.value = false; // 모달 닫기
 };
 
 

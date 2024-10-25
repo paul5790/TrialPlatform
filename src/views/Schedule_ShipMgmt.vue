@@ -26,7 +26,20 @@
         :row-key="(record) => record.key"
         bordered
         :customRow="customRow"
-      />
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'trialTypes'">
+            <span>
+              <a-tag v-for="(tag, index) in record.trialTypes" :key="index">
+                {{ tag.toUpperCase() }}
+              </a-tag>
+            </span>
+          </template>
+          <template v-else>
+            {{ record[column.dataIndex] }}
+          </template>
+        </template>
+      </a-table>
 
       <!-- 드롭다운 메뉴 -->
       <div
@@ -47,6 +60,7 @@
   <DocUploadModal
     :open="open"
     :formState="formState"
+    :yardList="yardList"
     @update:open="handleModalToggle"
     @submit="handleSubmit"
   />
@@ -54,6 +68,7 @@
   <!-- 필터 모달 컴포넌트 -->
   <ShipFilter
     :open="filterModalVisible"
+    :shipTypeList="shipTypeList"
     @update:open="handleFilterModalToggle"
     @filter="applyFilter"
   />
@@ -72,6 +87,7 @@ import { cloneDeep } from "lodash-es";
 import DocUploadModal from "@/components/modals/AddShip.vue";
 import ShipFilter from "@/components/Filter/ShipFilter.vue";
 import { getAllShips } from "../api/Ship/Ship.js";
+import { getShipType } from "../api/ShipType.js";
 
 const data = ref([]); // 테이블에 사용할 데이터
 const yardList = ref([]); // 중복되지 않은 yardName 리스트
@@ -131,10 +147,11 @@ const fetchData = async () => {
       data.value.push({
         shipId: ship.shipId || "",
         shipName: ship.shipName || "",
-        shipType: ship.shipType || "",
+        shipType: ship.shipType || null,
         imoNo: ship.imoNo || "",
-        yardName: ship.yardName || "",
+        yardName: ship.yardName || null,
         rescueCapa: ship.rescueCapa || "",
+        trialTypes: ship.trialTypes || [],
       });
 
       // yardName이 존재하면 Set에 추가
@@ -147,21 +164,28 @@ const fetchData = async () => {
     yardList.value = Array.from(yards);
 
     console.log(data.value);
-    console.log('yardList.value', yardList.value); // 중복 제거된 yardName 리스트 출력
+    console.log("yardList.value", yardList.value); // 중복 제거된 yardName 리스트 출력
+  } catch (error) {
+    console.error(error);
+    message.value = `api 오류(${error})`;
+  }
+};
+fetchData();
+
+const shipTypeList = ref([]); // Ship Type 목록 상태 저장
+const getShipTypeList = async () => {
+  try {
+    shipTypeList.value = await getShipType();
   } catch (error) {
     console.error(error);
     message.value = `api 오류(${error})`;
   }
 };
 
-fetchData();
-
 const open = ref(false);
 
 // 필터 모달 열기 상태
 const filterModalVisible = ref(false);
-// 필터된 데이터 저장용 상태
-const filterValue = ref("");
 
 // 필터 모달 닫기
 const handleFilterModalToggle = (value) => {
@@ -203,8 +227,44 @@ const filteredData = computed(() => {
       console.log("key : ", key);
       console.log("value : ", value);
       console.log("item", item);
+
+      // rescueCapa 필터 처리
+      if (key === "rescueCapa") {
+        const minValue = parseFloat(value.min) || -Infinity; // 최소값 없으면 -Infinity
+        const maxValue = parseFloat(value.max) || Infinity; // 최대값 없으면 Infinity
+        const itemValue = parseFloat(item[key]) || 0; // 비교할 값, 없으면 0
+
+        console.log(
+          "minValue:",
+          minValue,
+          "maxValue:",
+          maxValue,
+          "itemValue:",
+          itemValue
+        );
+
+        // item의 값이 min과 max 범위 내에 있는지 확인
+        return itemValue >= minValue && itemValue <= maxValue;
+      }
+
+      // shipType 필터 처리 (배열이거나 비어있는 경우)
+      if (key === "shipType") {
+        if (Array.isArray(value) && value.length === 0) {
+          // 배열이 비어있는 경우 모든 데이터를 포함
+          console.log("Empty shipType array, showing all data.");
+          return true;
+        }
+        if (Array.isArray(value)) {
+          // 배열에 포함된 값 중 하나라도 일치하면 true 반환
+          console.log("Checking shipType:", value, "against", item[key]);
+          return value.includes(item[key]);
+        }
+      }
+
+      // 일반 필터 처리 (문자열 일치 여부)
       const targetValue = item[key] ?? ""; // undefined 방지
       console.log("targetValue : ", targetValue);
+
       return targetValue.toLowerCase().includes(value.toLowerCase());
     });
   });
@@ -214,17 +274,17 @@ const filteredData = computed(() => {
 const formState = reactive({
   shipId: "",
   shipType: null,
-  shipName: "haha",
+  shipName: "",
   imoNo: "",
-  yardName: "",
+  yardName: null,
   rescueCapa: "",
 });
 
 // 필터 모달 열기
-const showFilterModal = () => {
+const showFilterModal = async () => {
+  await getShipTypeList();
   filterModalVisible.value = true;
 };
-
 
 // 상태 관리 변수들 정의
 const menuVisible = ref(false);
@@ -287,7 +347,7 @@ const resetFormState = () => {
     shipType: null,
     shipName: "",
     imoNo: "",
-    yardName: "",
+    yardName: null,
     rescueCapa: "",
   });
 };
@@ -304,8 +364,6 @@ const setFormState = (data) => {
   });
 };
 
-
-
 // 메뉴 닫기 핸들러
 const handleMenuClose = (open) => {
   menuVisible.value = open;
@@ -321,12 +379,12 @@ const handleClickOutside = (event) => {
 
 // 컴포넌트 마운트 시 외부 클릭 이벤트 리스너 등록
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
+  document.addEventListener("click", handleClickOutside);
 });
 
 // 컴포넌트 언마운트 시 이벤트 리스너 제거
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener("click", handleClickOutside);
 });
 
 const columns = [
@@ -362,7 +420,7 @@ const columns = [
   },
   {
     title: "Trial Type",
-    dataIndex: "TrialType",
+    dataIndex: "trialTypes",
     width: "30%",
   },
 ];
@@ -386,19 +444,6 @@ const handleSubmit = (submittedData) => {
 /* 우클릭 메뉴의 위치를 조정 */
 .a-dropdown {
   position: absolute;
-}
-
-.button-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding-bottom: 20px;
-}
-
-.top-button {
-  width: 200px;
-  height: 40px;
 }
 
 .context-menu-overlay {

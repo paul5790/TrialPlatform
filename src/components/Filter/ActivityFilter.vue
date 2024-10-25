@@ -8,89 +8,101 @@
       width="400px"
     >
       <a-form layout="vertical">
-        <div class="form-item" style="margin-top: 30px;">
+        <div class="form-item" style="margin-top: 30px">
           <a-checkbox
-            :checked="filters.shipName.checked"
-            @change="toggleFilter('shipName')"
+            :checked="filters.activityId.checked"
+            @change="toggleFilter('activityId')"
             class="form-label"
-            >Ship Name</a-checkbox
+            >Activity Id</a-checkbox
           >
           <a-input
-            v-model:value="filters.shipName.value"
-            :disabled="!filters.shipName.checked"
+            v-model:value="filters.activityId.value"
+            :disabled="!filters.activityId.checked"
             class="form-input"
-            placeholder="Enter Ship Name"
+            placeholder="Enter Activity Id"
           />
-        </div>
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.shipType.checked"
-            @change="toggleFilter('shipType')"
-            class="form-label"
-            >Ship Type</a-checkbox
-          >
-          <a-select
-            v-model:value="filters.shipType.value"
-            :disabled="!filters.shipType.checked"
-            placeholder="Enter Ship Type"
-            mode="multiple"
-            class="form-input"
-            :options="shipTypeItems.map((item) => ({ value: item }))"
-          >
-          </a-select>
         </div>
 
         <div class="form-item">
           <a-checkbox
-            :checked="filters.imoNo.checked"
-            @change="toggleFilter('imoNo')"
+            :checked="filters.activityName.checked"
+            @change="toggleFilter('activityName')"
             class="form-label"
-            >IMO Number</a-checkbox
+            >ActivityName</a-checkbox
           >
           <a-input
-            v-model:value="filters.imoNo.value"
-            :disabled="!filters.imoNo.checked"
+            v-model:value="filters.activityName.value"
+            :disabled="!filters.activityName.checked"
             class="form-input"
             placeholder="Enter IMO Number"
           />
         </div>
 
+        <!-- Time Taken (min - max) -->
         <div class="form-item">
           <a-checkbox
-            :checked="filters.yardName.checked"
-            @change="toggleFilter('yardName')"
-            class="form-label"
-            >Yard Name</a-checkbox
-          >
-          <a-input
-            v-model:value="filters.yardName.value"
-            :disabled="!filters.yardName.checked"
-            class="form-input"
-            placeholder="Enter Yard Name"
-          />
-        </div>
-        <!-- RescueCapa (min - max) -->
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.rescueCapa.checked"
-            @change="toggleFilter('rescueCapa')"
+            :checked="filters.timeTaken.checked"
+            @change="toggleFilter('timeTaken')"
             class="form-label"
           >
-            Rescue Capa
+            Time Taken
           </a-checkbox>
           <div class="range-inputs">
             <a-input
-              v-model:value="filters.rescueCapa.min"
-              :disabled="!filters.rescueCapa.checked"
+              v-model:value="filters.timeTaken.min"
+              :disabled="!filters.timeTaken.checked"
               placeholder="min"
             />
             <span> ~ </span>
             <a-input
-              v-model:value="filters.rescueCapa.max"
-              :disabled="!filters.rescueCapa.checked"
+              v-model:value="filters.timeTaken.max"
+              :disabled="!filters.timeTaken.checked"
               placeholder="max"
             />
           </div>
+        </div>
+
+        <!-- Engine Load (min - max) -->
+        <div class="form-item">
+          <a-checkbox
+            :checked="filters.engineLoad.checked"
+            @change="toggleFilter('engineLoad')"
+            class="form-label"
+          >
+            Engine Load
+          </a-checkbox>
+          <div class="range-inputs">
+            <a-input
+              v-model:value="filters.engineLoad.min"
+              :disabled="!filters.engineLoad.checked"
+              placeholder="min"
+            />
+            <span> ~ </span>
+            <a-input
+              v-model:value="filters.engineLoad.max"
+              :disabled="!filters.engineLoad.checked"
+              placeholder="max"
+            />
+          </div>
+        </div>
+
+        <div class="form-item">
+          <a-checkbox
+            :checked="filters.part.checked"
+            @change="toggleFilter('part')"
+            class="form-label"
+            >Part</a-checkbox
+          >
+
+          <a-select
+            v-model:value="filters.part.value"
+            :disabled="!filters.part.checked"
+            placeholder="Enter Ship Type"
+            mode="multiple"
+            class="form-input"
+            :options="partList.map((item) => ({ value: item }))"
+          >
+          </a-select>
         </div>
 
         <div class="divider"></div>
@@ -116,40 +128,25 @@
 </template>
 
 <script setup>
-import { ref, reactive, defineEmits, defineProps, watch } from "vue";
-import { getShipType } from "../../api/ShipType.js";
+import { reactive, defineEmits, defineProps } from "vue";
 
 // Props와 Emits 설정
 const props = defineProps({
   open: Boolean,
-  shipTypeList: Array,
 });
 const emit = defineEmits(["update:open", "filter"]);
 
-const shipTypeItems = ref([]);
-
-// props의 formState를 감시
-watch(
-  () => props.shipTypeList, // 감시할 대상
-  (newVal) => {
-    if (newVal && Array.isArray(newVal)) {
-      shipTypeItems.value = [...newVal]; // 변경된 값 할당
-    } else {
-      shipTypeItems.value = []; // 만약 값이 없거나 유효하지 않으면 빈 배열로 초기화
-    }
-  },
-  { immediate: true, deep: true } // 컴포넌트가 마운트될 때 즉시 실행
-);
-
 // 필터 상태를 객체로 관리
 const filters = reactive({
-  shipName: { checked: false, value: "" },
-  shipType: { checked: false, value: [] },
-  imoNo: { checked: false, value: "" },
-  yardName: { checked: false, value: "" },
-  rescueCapa: { checked: false, min: "", max: "" },
+  activityId: { checked: false, value: "" },
+  part: { checked: false, value: [] },
+  activityName: { checked: false, value: "" },
+  timeTaken: { checked: false, min: "", max: "" },
+  engineLoad: { checked: false, min: "", max: "" },
   search: { checked: false, value: "" },
 });
+
+const partList = ["General", "Hull", "Machinery", "Electric"]
 
 // 모달 닫기 함수
 const closeModal = () => {
@@ -165,8 +162,8 @@ const applyFilter = () => {
     console.log("filter.checked", filter.checked);
 
     if (filter.checked) {
-      if (key === "rescueCapa") {
-        // rescueCapa일 경우 min과 max를 함께 전달
+      if (key === "timeTaken" || key === "engineLoad") {
+        // timeTaken, engineLoad일 경우 min과 max를 함께 전달
         if (filter.min || filter.max) {
           appliedFilters[key] = { min: filter.min, max: filter.max };
         }
@@ -190,31 +187,31 @@ const applyFilter = () => {
 
 // 필터 체크박스 토글 함수
 const toggleFilter = async (filterKey) => {
-  if (filterKey === 'search') {
+  if (filterKey === "search") {
     // Search 체크박스가 선택되면 다른 모든 체크박스 해제
     if (!filters.search.checked) {
       Object.keys(filters).forEach((key) => {
-        if (key !== 'search') {
-          filters[key].checked = false;  // 체크 해제
+        if (key !== "search") {
+          filters[key].checked = false; // 체크 해제
           if (filters[key].value !== undefined) {
-            filters[key].value = ''; // 입력된 값 초기화
+            filters[key].value = ""; // 입력된 값 초기화
           }
-          if (filters[key].min !== undefined) filters[key].min = '';
-          if (filters[key].max !== undefined) filters[key].max = '';
+          if (filters[key].min !== undefined) filters[key].min = "";
+          if (filters[key].max !== undefined) filters[key].max = "";
         }
       });
     }
   } else {
     // 다른 필터를 클릭하면 Search 체크박스 해제
     filters.search.checked = false;
-    filters.search.value = ''; // Search 입력 필드 초기화
+    filters.search.value = ""; // Search 입력 필드 초기화
   }
 
   // 체크박스 상태를 반전
   filters[filterKey].checked = !filters[filterKey].checked;
 
   // DOM 업데이트를 강제 적용
-  await nextTick(); 
+  await nextTick();
 };
 </script>
 

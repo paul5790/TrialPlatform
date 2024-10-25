@@ -3,56 +3,18 @@
     direction="vertical"
     style="width: 100%; height: 100%; padding: 30px"
   >
-    <a-button
-      @click="showModal"
-      type="primary"
-      style="width: 200px; height: 40px"
-    >
-      <template #icon>
-        <PlusOutlined />
-      </template>
-      새 활동 추가
-    </a-button>
-    <div style="display: flex; align-items: center; gap: 20px">
-      <a-card
-        style="width: 85%; height: 50px"
-        body-style="padding: 7.5px; padding-left: 0px; display: flex; align-items: center; gap: 10px;"
+    <div class="button-container">
+      <!-- 왼쪽 버튼 -->
+      <a-button @click="showModal" type="primary" class="top-button">
+        + 새 활동 추가
+      </a-button>
+
+      <!-- 오른쪽 버튼 -->
+      <a-button
+        :icon="h(FilterOutlined)"
+        @click="showFilterModal"
+        class="top-button"
       >
-        <a-dropdown>
-          <template #overlay>
-            <a-menu @click="handleMenuClick">
-              <a-menu-item key="1">
-                <UserOutlined />
-                EngineLoad
-              </a-menu-item>
-              <a-menu-item key="2">
-                <UserOutlined />
-                2nd menu item
-              </a-menu-item>
-              <a-menu-item key="3">
-                <UserOutlined />
-                3rd item
-              </a-menu-item>
-            </a-menu>
-          </template>
-          <a-button
-            @click="handleButtonClick"
-            style="
-              width: 150px;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            "
-          >
-            {{ selectedMenu }}
-            <DownOutlined />
-          </a-button>
-        </a-dropdown>
-        <a-button :icon="h(FilterOutlined)" style="margin-left: 10px">
-        </a-button>
-        <a-input style="margin-left: 10px" v-model:value="formState.username" />
-      </a-card>
-      <a-button type="primary" style="width: 200px; height: 40px">
         필터링
       </a-button>
     </div>
@@ -113,6 +75,13 @@
       @submit="handleSubmit"
     />
 
+  <!-- 필터 모달 컴포넌트 -->
+  <ActivityFilter
+    :open="filterModalVisible"
+    @update:open="handleFilterModalToggle"
+    @filter="applyFilter"
+  />
+
 </template>
 
 <script setup>
@@ -124,17 +93,93 @@ import {
   FilterOutlined,
 } from "@ant-design/icons-vue";
 import { getAllActivities } from "../api/Activities/Activities.js";
-import { ref, h, reactive } from "vue";
+import { ref, h, reactive, computed, onMounted, onBeforeUnmount } from "vue";
 import { cloneDeep } from "lodash-es";
 import AddActivity from '@/components/modals/AddActivity.vue';
+import ActivityFilter from "@/components/Filter/ActivityFilter.vue";
 
 // 모달 변수
 const loading = ref(false);
 const open = ref(false);
 
-// 상태 변수
+// 필터 모달 열기 상태
+const filterModalVisible = ref(false);
+
+// 필터 모달 열기
+const showFilterModal = () => {
+  filterModalVisible.value = true;
+};
+
+// 필터 모달 닫기
+const handleFilterModalToggle = (value) => {
+  filterModalVisible.value = value;
+};
+
+// 필터된 데이터 저장용 상태
+const filters = ref({});
+
+// 필터 모달에서 필터 적용 시 호출되는 함수
+const applyFilter = (newFilters) => {
+  console.log("Received Filters:", newFilters); // 로그로 전달받은 필터 확인
+  filters.value = newFilters;
+};
+
+// 필터된 데이터 계산
+const filteredData = computed(() => {
+  console.log("Current filter value:", filters.value); // 로그: 필터 값 확인
+
+  // 필터가 없으면 전체 데이터를 반환
+  if (Object.keys(filters.value).length === 0) {
+    return data.value;
+  }
+
+  // search 필터가 있는 경우: 모든 컬럼에서 값 포함 여부 확인
+  if (filters.value.search) {
+    const searchValue = filters.value.search.toLowerCase();
+    return data.value.filter((item) => {
+      // 각 row의 모든 컬럼 값 중 하나라도 검색어를 포함하는지 확인
+      return Object.values(item).some((val) =>
+        String(val).toLowerCase().includes(searchValue)
+      );
+    });
+  }
+
+  // 필터 조건에 맞게 데이터 필터링
+  return data.value.filter((item) => {
+    return Object.entries(filters.value).every(([key, value]) => {
+      console.log("key : ", key);
+      console.log("value : ", value);
+      console.log("item", item);
+
+      // rescueCapa 필터 처리
+      if (key === "rescueCapa") {
+        const minValue = parseFloat(value.min) || -Infinity; // 최소값 없으면 -Infinity
+        const maxValue = parseFloat(value.max) || Infinity;  // 최대값 없으면 Infinity
+        const itemValue = parseFloat(item[key]) || 0; // 비교할 값, 없으면 0
+
+        console.log("minValue:", minValue, "maxValue:", maxValue, "itemValue:", itemValue);
+
+        // item의 값이 min과 max 범위 내에 있는지 확인
+        return itemValue >= minValue && itemValue <= maxValue;
+      }
+
+      // 일반 필터 처리 (문자열 일치 여부)
+      const targetValue = item[key] ?? ""; // undefined 방지
+      console.log("targetValue : ", targetValue);
+
+      return targetValue.toLowerCase().includes(value.toLowerCase());
+    });
+  });
+});
+
+
+// 폼 상태 저장
 const formState = reactive({
-  username: "",
+  activityId: "",
+  part: null,
+  activityName: "",
+  timeTaken: "",
+  engineLoad: "",
 });
 
 // 선택한 메뉴를 저장할 변수
