@@ -22,6 +22,7 @@
             placeholder="Enter Ship Name"
           />
         </div>
+        
         <div class="form-item">
           <a-checkbox
             :checked="filters.shipType.checked"

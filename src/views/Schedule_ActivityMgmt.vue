@@ -1,7 +1,7 @@
 <template>
   <a-space
     direction="vertical"
-    style="width: 100%; height: 100%; padding: 30px"
+    style="width: 100%; height: 100%; padding: 20px"
   >
     <div class="button-container">
       <!-- 왼쪽 버튼 -->
@@ -19,61 +19,68 @@
       </a-button>
     </div>
 
-    <a-table :columns="columns" :data-source="dataSource" bordered>
-      <template #bodyCell="{ column, text, record }">
+    <a-table
+      :columns="columns"
+      :pagination="{
+        pageSize: 13,
+        showSizeChanger: true,
+        pageSizeOptions: ['13'],
+      }"
+      :data-source="filteredData"
+      :row-key="(record) => record.key"
+      bordered
+      :customRow="customRow"
+      size="small"
+    >
+      <template #bodyCell="{ column, record }">
         <template
           v-if="
-            [
-              'ActivityId',
-              'ActivityName',
-              'TimeTaken',
-              'EngineLoad',
-              'Part',
-              'ShipTypes',
-              'TrialType',
-              'address',
-            ].includes(column.dataIndex)
+            column.dataIndex === 'shipTypes'
           "
         >
-          <div>
-            <a-input
-              v-if="editableData[record.key]"
-              v-model:value="editableData[record.key][column.dataIndex]"
-              style="margin: -5px 0"
-            />
-            <template v-else>
-              {{ text }}
-            </template>
-          </div>
+          <span>
+            <a-tag v-for="(tag, index) in record.shipTypes" :key="index">
+              {{ tag.toUpperCase() }}
+            </a-tag>
+          </span>
         </template>
-        <template v-else-if="column.dataIndex === 'operation'">
-          <div class="editable-row-operations">
-            <span v-if="editableData[record.key]">
-              <a-typography-link @click="save(record.key)"
-                >Save</a-typography-link
-              >
-              <a-popconfirm
-                title="Sure to cancel?"
-                @confirm="cancel(record.key)"
-              >
-                <a>Cancel</a>
-              </a-popconfirm>
-            </span>
-            <span v-else>
-              <a @click="edit(record.key)">Edit</a>
-            </span>
-          </div>
+        <template
+          v-else-if="
+            column.dataIndex === 'trialTypes'
+          "
+        >
+          <span>
+            <a-tag v-for="(tag, index) in record.trialTypes" :key="index">
+              {{ tag.toUpperCase() }}
+            </a-tag>
+          </span>
+        </template>
+        <template v-else>
+          {{ record[column.dataIndex] }}
         </template>
       </template>
     </a-table>
+    <!-- 드롭다운 메뉴 -->
+      <div
+        v-if="menuVisible"
+        ref="contextMenu"
+        class="context-menu"
+        :style="{ top: `${menuPosition.y}px`, left: `${menuPosition.x}px` }"
+      >
+        <a-menu>
+          <a-menu-item key="edit" @click="handleEdit">수정</a-menu-item>
+          <a-menu-item key="delete" @click="handleDelete">삭제</a-menu-item>
+        </a-menu>
+      </div>
   </a-space>
   <!-- 새 활동 추가 모달 -->
   <AddActivity
-      :open="open"
-      :formState="formState"
-      @update:open="handleModalToggle"
-      @submit="handleSubmit"
-    />
+    :open="open"
+    :formState="formState"
+    @update:open="handleModalToggle"
+    @submit="handleSubmit"
+    @refreshData="reFetchData"
+  />
 
   <!-- 필터 모달 컴포넌트 -->
   <ActivityFilter
@@ -81,7 +88,6 @@
     @update:open="handleFilterModalToggle"
     @filter="applyFilter"
   />
-
 </template>
 
 <script setup>
@@ -95,7 +101,7 @@ import {
 import { getAllActivities } from "../api/Activities/Activities.js";
 import { ref, h, reactive, computed, onMounted, onBeforeUnmount } from "vue";
 import { cloneDeep } from "lodash-es";
-import AddActivity from '@/components/modals/AddActivity.vue';
+import AddActivity from "@/components/modals/AddActivity.vue";
 import ActivityFilter from "@/components/Filter/ActivityFilter.vue";
 
 // 모달 변수
@@ -114,6 +120,134 @@ const showFilterModal = () => {
 const handleFilterModalToggle = (value) => {
   filterModalVisible.value = value;
 };
+
+// 폼 상태 저장
+const formState = reactive({
+  put: false,
+  activityId: "",
+  part: null,
+  activityName: "",
+  timeTaken: "",
+  engineLoad: "",
+});
+
+// 상태 관리 변수들 정의
+const menuVisible = ref(false);
+const contextMenu = ref(null);
+const menuPosition = reactive({ x: 0, y: 0 });
+const selectedRow = ref(null);
+
+const customRow = (record) => ({
+  onContextmenu: (event) => {
+    onRowContextMenu(record, event); // 우클릭 핸들러 호출
+  },
+});
+// 우클릭 이벤트 핸들러
+const onRowContextMenu = (record, event) => {
+  event.preventDefault(); // 기본 메뉴 차단
+  selectedRow.value = record;
+  menuVisible.value = true;
+
+  menuPosition.x = event.clientX;
+  menuPosition.y = event.clientY;
+
+  // 메뉴 위치 설정
+  setTimeout(() => {
+    const menuEl = contextMenu.value;
+    if (menuEl) {
+      menuEl.style.left = `${menuPosition.x}px`;
+      menuEl.style.top = `${menuPosition.y}px`;
+      menuEl.style.position = "absolute";
+      menuEl.style.zIndex = "1000";
+    }
+  }, 0);
+};
+
+// 수정 버튼 클릭 시
+const handleEdit = () => {
+  console.log("수정할 데이터:", selectedRow.value);
+  setFormState(selectedRow.value);
+
+  open.value = true;
+  menuVisible.value = false;
+};
+
+// 삭제 버튼 클릭 시
+const handleDelete = () => {
+  console.log("삭제할 데이터:", selectedRow.value);
+  Modal.confirm({
+    title: '선박 정보 삭제',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '등록된 선박 정보를 삭제하시겠습니까?',
+    okText: 'Yes',
+    okType: 'danger',
+    cancelText: 'No',
+    onOk () {
+      console.log('OK');
+      deleteRequest(selectedRow.value.shipId);
+    },
+    onCancel() {
+      console.log('Cancel');
+    },
+  });
+  menuVisible.value = false;
+};
+
+const deleteRequest = async (id) => {
+  await deleteShip(id);
+  reFetchData();
+}
+
+// 폼 상태 초기화 함수
+const resetFormState = () => {
+  Object.assign(formState, {
+    put: false,
+    activityId: "",
+    part: null,
+    activityName: "",
+    timeTaken: "",
+    engineLoad: "",
+  });
+};
+
+// 폼 상태 초기화 함수
+const setFormState = (data) => {
+  console.log('data : ', data);
+  Object.assign(formState, {
+    put: true,
+    shipId: data.shipId,
+    shipType: data.shipType,
+    shipName: data.shipName,
+    imoNo: data.imoNo,
+    yardName: data.yardName,
+    rescueCapa: data.rescueCapa,
+    trialTypes: data.trialTypes,
+  });
+};
+
+// 메뉴 닫기 핸들러
+const handleMenuClose = (open) => {
+  menuVisible.value = open;
+};
+
+// 외부 클릭 감지 이벤트 핸들러
+const handleClickOutside = (event) => {
+  const menuEl = contextMenu.value;
+  if (menuEl && !menuEl.contains(event.target)) {
+    menuVisible.value = false;
+  }
+};
+
+// 컴포넌트 마운트 시 외부 클릭 이벤트 리스너 등록
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+
+// 컴포넌트 언마운트 시 이벤트 리스너 제거
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
+
 
 // 필터된 데이터 저장용 상태
 const filters = ref({});
@@ -154,10 +288,17 @@ const filteredData = computed(() => {
       // rescueCapa 필터 처리
       if (key === "rescueCapa") {
         const minValue = parseFloat(value.min) || -Infinity; // 최소값 없으면 -Infinity
-        const maxValue = parseFloat(value.max) || Infinity;  // 최대값 없으면 Infinity
+        const maxValue = parseFloat(value.max) || Infinity; // 최대값 없으면 Infinity
         const itemValue = parseFloat(item[key]) || 0; // 비교할 값, 없으면 0
 
-        console.log("minValue:", minValue, "maxValue:", maxValue, "itemValue:", itemValue);
+        console.log(
+          "minValue:",
+          minValue,
+          "maxValue:",
+          maxValue,
+          "itemValue:",
+          itemValue
+        );
 
         // item의 값이 min과 max 범위 내에 있는지 확인
         return itemValue >= minValue && itemValue <= maxValue;
@@ -170,16 +311,6 @@ const filteredData = computed(() => {
       return targetValue.toLowerCase().includes(value.toLowerCase());
     });
   });
-});
-
-
-// 폼 상태 저장
-const formState = reactive({
-  activityId: "",
-  part: null,
-  activityName: "",
-  timeTaken: "",
-  engineLoad: "",
 });
 
 // 선택한 메뉴를 저장할 변수
@@ -199,169 +330,72 @@ const handleMenuClick = (e) => {
 // 데이터 테이블
 const columns = [
   {
-    title: "ActivityId",
-    dataIndex: "ActivityId",
+    title: "Activity Id",
+    dataIndex: "activityId",
     width: "5%",
   },
   {
-    title: "ActivityName",
-    dataIndex: "ActivityName",
+    title: "Activity Name",
+    dataIndex: "activityName",
     width: "15%",
   },
   {
-    title: "TimeTaken",
-    dataIndex: "TimeTaken",
+    title: "Time Taken",
+    dataIndex: "timeTaken",
     width: "5%",
   },
   {
-    title: "EngineLoad",
-    dataIndex: "EngineLoad",
+    title: "Engine Load",
+    dataIndex: "engineLoad",
     width: "5%",
   },
   {
     title: "Part",
-    dataIndex: "Part",
+    dataIndex: "part",
     width: "7%",
   },
   {
-    title: "ShipTypes",
-    dataIndex: "ShipTypes",
+    title: "Ship Types",
+    dataIndex: "shipTypes",
     width: "15%",
   },
   {
-    title: "TrialType",
-    dataIndex: "TrialType",
+    title: "Trial Types",
+    dataIndex: "trialTypes",
     width: "15%",
   },
 ];
 
 const data = ref([]);
-// for (let i = 0; i < 7; i++) {
-//   data.push({
-//     key: i.toString(),
-//     ActivityId: `A-${i}`,
-//     ActivityName: `Speed test`,
-//     TimeTaken: 120,
-//     EngineLoad: 50,
-//     Part: `General`,
-//     ShipTypes: `Container`,
-//     TrialType: `Offshore`,
-//     address: `London Park no. ${i}`,
-//   });
-// }
 
 const fetchData = async () => {
   try {
     const response = await getAllActivities();
     console.log(response);
-    // for (let i = 0; i < response.length; i++) {
-    //   items.value.push({
-    //     userId: response[i].id || "",
-    //     userName: response[i].userName || "",
-    //     userGroup: response[i].userGroup || "",
-    //     department: response[i].department || "",
-    //     phoneNumber: response[i].phoneNumber || "",
-    //     description: response[i].description || "",
-    //     email: response[i].email || "",
-    //   });
-    //   // items.value.push(response.data[i]);
-    // }
     response.forEach((activity, index) => {
       data.value.push({
         key: index + 1,
-        ActivityId: activity.activityId || "",
-        ActivityName: activity.activityName || "",
-        TimeTaken: activity.timeTaken || "",
-        EngineLoad: activity.engineLoad || "",
-        Part: activity.part || "",
-        ShipTypes: "ShipTypes" || "",
-        TrialType: "TrialTypes" || "",
+        activityId: activity.activityId || "",
+        activityName: activity.activityName || "",
+        timeTaken: activity.timeTaken || 0,
+        engineLoad: activity.engineLoad || 0,
+        part: activity.part || "",
+        shipTypes: activity.shipTypes || "",
+        trialTypes: activity.trialTypes || "",
       });
     });
-    console.log(data.value)
+    console.log(data.value);
   } catch (error) {
     console.error(error);
-    message.value = `api 오류(${error})`;
   }
 };
 
 fetchData();
 
-// data.push(
-//   {
-//     key: 1,
-//     ActivityId: `A-1`,
-//     ActivityName: `Speed test`,
-//     TimeTaken: 120,
-//     EngineLoad: 50,
-//     Part: `General`,
-//     ShipTypes: `Container`,
-//     TrialType: `Offshore`,
-//   },
-//   {
-//     key: 2,
-//     ActivityId: `G-1`,
-//     ActivityName: `Anchor test`,
-//     TimeTaken: 60,
-//     EngineLoad: 50,
-//     Part: `Hull`,
-//     ShipTypes: `Container`,
-//     TrialType: `Offshore`,
-//   },
-//   {
-//     key: 3,
-//     ActivityId: `A-2`,
-//     ActivityName: `Steering test`,
-//     TimeTaken: 210,
-//     EngineLoad: 50,
-//     Part: `Machinery`,
-//     ShipTypes: `Container`,
-//     TrialType: `Offshore`,
-//   },
-//   {
-//     key: 4,
-//     ActivityId: `B-18`,
-//     ActivityName: `M/E running test`,
-//     TimeTaken: 40,
-//     EngineLoad: 50,
-//     Part: `Electric`,
-//     ShipTypes: `Container`,
-//     TrialType: `Offshore`,
-//   }
-// );
-
-const dataSource = ref(data);
-const editableData = reactive({});
-
-const edit = (key) => {
-  editableData[key] = cloneDeep(
-    dataSource.value.filter((item) => key === item.key)[0]
-  );
-};
-const save = (key) => {
-  Object.assign(
-    dataSource.value.filter((item) => key === item.key)[0],
-    editableData[key]
-  );
-  delete editableData[key];
-};
-const cancel = (key) => {
-  delete editableData[key];
-};
-
 // 모달 함수
 const showModal = () => {
+  resetFormState();
   open.value = true;
-};
-const handleOk = () => {
-  loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
-    open.value = false;
-  }, 2000);
-};
-const handleCancel = () => {
-  open.value = false;
 };
 
 // 모달 열림 상태를 업데이트하는 함수
@@ -371,7 +405,11 @@ const handleModalToggle = (value) => {
 
 // 모달 제출 처리
 const handleSubmit = (submittedData) => {
-  console.log('Submitted form data:', submittedData);
+  console.log("Submitted form data:", submittedData);
+};
+
+const reFetchData = () => {
+  fetchData();
 };
 </script>
 

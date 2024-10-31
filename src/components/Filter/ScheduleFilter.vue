@@ -8,55 +8,7 @@
       width="400px"
     >
       <a-form layout="vertical">
-        <div class="form-item" style="margin-top: 30px;">
-          <a-checkbox
-            :checked="filters.trialId.checked"
-            @change="toggleFilter('trialId')"
-            class="form-label"
-            >Trial Id</a-checkbox
-          >
-          <a-input
-            v-model:value="filters.trialId.value"
-            :disabled="!filters.trialId.checked"
-            class="form-input"
-            placeholder="Enter Trial Id"
-          />
-        </div>
-        
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.name.checked"
-            @change="toggleFilter('name')"
-            class="form-label"
-            >Doc Name</a-checkbox
-          >
-          <a-input
-            v-model:value="filters.name.value"
-            :disabled="!filters.name.checked"
-            class="form-input"
-            placeholder="Enter Doc Name"
-          />
-        </div>
-
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.type.checked"
-            @change="toggleFilter('type')"
-            class="form-label"
-            >Doc Type</a-checkbox
-          >
-          <a-select
-            v-model:value="filters.type.value"
-            :disabled="!filters.type.checked"
-            placeholder="Enter Doc Type"
-            mode="multiple"
-            class="form-input"
-            :options="docTypeItems.map((item) => ({ value: item }))"
-          >
-          </a-select>
-        </div>
-
-        <div class="form-item">
+        <div class="form-item" style="margin-top: 30px">
           <a-checkbox
             :checked="filters.activityId.checked"
             @change="toggleFilter('activityId')"
@@ -73,62 +25,84 @@
 
         <div class="form-item">
           <a-checkbox
-            :checked="filters.company.checked"
-            @change="toggleFilter('company')"
+            :checked="filters.activityName.checked"
+            @change="toggleFilter('activityName')"
             class="form-label"
-            >Company</a-checkbox
+            >ActivityName</a-checkbox
           >
           <a-input
-            v-model:value="filters.company.value"
-            :disabled="!filters.company.checked"
+            v-model:value="filters.activityName.value"
+            :disabled="!filters.activityName.checked"
             class="form-input"
-            placeholder="Enter Company"
+            placeholder="Enter IMO Number"
           />
+        </div>
+
+        <!-- Time Taken (min - max) -->
+        <div class="form-item">
+          <a-checkbox
+            :checked="filters.timeTaken.checked"
+            @change="toggleFilter('timeTaken')"
+            class="form-label"
+          >
+            Time Taken
+          </a-checkbox>
+          <div class="range-inputs">
+            <a-input
+              v-model:value="filters.timeTaken.min"
+              :disabled="!filters.timeTaken.checked"
+              placeholder="min"
+            />
+            <span> ~ </span>
+            <a-input
+              v-model:value="filters.timeTaken.max"
+              :disabled="!filters.timeTaken.checked"
+              placeholder="max"
+            />
+          </div>
+        </div>
+
+        <!-- Engine Load (min - max) -->
+        <div class="form-item">
+          <a-checkbox
+            :checked="filters.engineLoad.checked"
+            @change="toggleFilter('engineLoad')"
+            class="form-label"
+          >
+            Engine Load
+          </a-checkbox>
+          <div class="range-inputs">
+            <a-input
+              v-model:value="filters.engineLoad.min"
+              :disabled="!filters.engineLoad.checked"
+              placeholder="min"
+            />
+            <span> ~ </span>
+            <a-input
+              v-model:value="filters.engineLoad.max"
+              :disabled="!filters.engineLoad.checked"
+              placeholder="max"
+            />
+          </div>
         </div>
 
         <div class="form-item">
           <a-checkbox
-            :checked="filters.department.checked"
-            @change="toggleFilter('department')"
+            :checked="filters.part.checked"
+            @change="toggleFilter('part')"
             class="form-label"
-            >Department</a-checkbox
+            >Part</a-checkbox
           >
-          <a-input
-            v-model:value="filters.department.value"
-            :disabled="!filters.department.checked"
+
+          <a-select
+            v-model:value="filters.part.value"
+            :disabled="!filters.part.checked"
+            placeholder="Enter Ship Type"
+            mode="multiple"
             class="form-input"
-            placeholder="Enter Department"
-          />
-        </div>
-        
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.creator.checked"
-            @change="toggleFilter('creator')"
-            class="form-label"
-            >Creator</a-checkbox
+            :options="partList.map((item) => ({ value: item }))"
           >
-          <a-input
-            v-model:value="filters.creator.value"
-            :disabled="!filters.creator.checked"
-            class="form-input"
-            placeholder="Enter Creator"
-          />
-        </div>
-        
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.uploader.checked"
-            @change="toggleFilter('uploader')"
-            class="form-label"
-            >Uploader</a-checkbox
-          >
-          <a-input
-            v-model:value="filters.uploader.value"
-            :disabled="!filters.uploader.checked"
-            class="form-input"
-            placeholder="Enter Uploader"
-          />
+          </a-select>
         </div>
 
         <div class="divider"></div>
@@ -154,29 +128,25 @@
 </template>
 
 <script setup>
-import { ref, reactive, defineEmits, defineProps, watch } from "vue";
+import { reactive, defineEmits, defineProps } from "vue";
 
 // Props와 Emits 설정
 const props = defineProps({
   open: Boolean,
-  trialIdList: Array,
 });
 const emit = defineEmits(["update:open", "filter"]);
 
-const docTypeItems = ref(["Rule", "Regulation", "Design", "Plan", "Procedure", "Result", "Report"]);
-
 // 필터 상태를 객체로 관리
 const filters = reactive({
-  trialId: { checked: false, value: "" },
-  name: { checked: false, value: "" },
-  type: { checked: false, value: [] },
   activityId: { checked: false, value: "" },
-  company: { checked: false, value: "" },
-  department: { checked: false, value: "" },
-  creator: { checked: false, value: "" },
-  uploader: { checked: false, value: "" },
+  part: { checked: false, value: [] },
+  activityName: { checked: false, value: "" },
+  timeTaken: { checked: false, min: "", max: "" },
+  engineLoad: { checked: false, min: "", max: "" },
   search: { checked: false, value: "" },
 });
+
+const partList = ["General", "Hull", "Machinery", "Electric"]
 
 // 모달 닫기 함수
 const closeModal = () => {
@@ -192,8 +162,8 @@ const applyFilter = () => {
     console.log("filter.checked", filter.checked);
 
     if (filter.checked) {
-      if (key === "rescueCapa") {
-        // rescueCapa일 경우 min과 max를 함께 전달
+      if (key === "timeTaken" || key === "engineLoad") {
+        // timeTaken, engineLoad일 경우 min과 max를 함께 전달
         if (filter.min || filter.max) {
           appliedFilters[key] = { min: filter.min, max: filter.max };
         }
@@ -211,32 +181,37 @@ const applyFilter = () => {
 };
 
 // 필터 체크박스 토글 함수
+// const toggleFilter = (filterKey) => {
+//   filters[filterKey].checked = !filters[filterKey].checked;
+// };
+
+// 필터 체크박스 토글 함수
 const toggleFilter = async (filterKey) => {
-  if (filterKey === 'search') {
+  if (filterKey === "search") {
     // Search 체크박스가 선택되면 다른 모든 체크박스 해제
     if (!filters.search.checked) {
       Object.keys(filters).forEach((key) => {
-        if (key !== 'search') {
-          filters[key].checked = false;  // 체크 해제
+        if (key !== "search") {
+          filters[key].checked = false; // 체크 해제
           if (filters[key].value !== undefined) {
-            filters[key].value = ''; // 입력된 값 초기화
+            filters[key].value = ""; // 입력된 값 초기화
           }
-          if (filters[key].min !== undefined) filters[key].min = '';
-          if (filters[key].max !== undefined) filters[key].max = '';
+          if (filters[key].min !== undefined) filters[key].min = "";
+          if (filters[key].max !== undefined) filters[key].max = "";
         }
       });
     }
   } else {
     // 다른 필터를 클릭하면 Search 체크박스 해제
     filters.search.checked = false;
-    filters.search.value = ''; // Search 입력 필드 초기화
+    filters.search.value = ""; // Search 입력 필드 초기화
   }
 
   // 체크박스 상태를 반전
   filters[filterKey].checked = !filters[filterKey].checked;
 
   // DOM 업데이트를 강제 적용
-  await nextTick(); 
+  await nextTick();
 };
 </script>
 

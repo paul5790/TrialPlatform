@@ -22,10 +22,16 @@
     <div @contextmenu.prevent>
       <a-table
         :columns="columns"
+        :pagination="{
+          pageSize: 13,
+          showSizeChanger: true,
+          pageSizeOptions: ['13'],
+        }"
         :data-source="filteredData"
         :row-key="(record) => record.key"
         bordered
         :customRow="customRow"
+        size="small"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'trialTypes'">
@@ -57,12 +63,13 @@
   </a-space>
 
   <!-- 문서 업로드 모달 컴포넌트 -->
-  <DocUploadModal
+  <ShipUploadModal
     :open="open"
     :formState="formState"
     :yardList="yardList"
     @update:open="handleModalToggle"
     @submit="handleSubmit"
+    @refreshData="reFetchData"
   />
 
   <!-- 필터 모달 컴포넌트 -->
@@ -84,10 +91,14 @@ import {
 } from "@ant-design/icons-vue";
 import { ref, h, reactive, computed, onMounted, onBeforeUnmount } from "vue";
 import { cloneDeep } from "lodash-es";
-import DocUploadModal from "@/components/modals/AddShip.vue";
+import ShipUploadModal from "@/components/modals/AddShip.vue";
 import ShipFilter from "@/components/Filter/ShipFilter.vue";
-import { getAllShips } from "../api/Ship/Ship.js";
+import { getAllShips, deleteShip } from "../api/Ship/Ship.js";
 import { getShipType } from "../api/ShipType.js";
+import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
+import { createVNode } from 'vue';
+import { Modal } from 'ant-design-vue';
+
 
 const data = ref([]); // 테이블에 사용할 데이터
 const yardList = ref([]); // 중복되지 않은 yardName 리스트
@@ -140,6 +151,7 @@ const fetchData = async () => {
   try {
     const response = await getAllShips();
     console.log(response);
+    data.value = [];
 
     const yards = new Set(); // 중복을 제거하기 위한 Set 생성
 
@@ -151,7 +163,7 @@ const fetchData = async () => {
         imoNo: ship.imoNo || "",
         yardName: ship.yardName || null,
         rescueCapa: ship.rescueCapa || "",
-        trialTypes: ship.trialTypes || [],
+        trialTypes: ship.trialTypes || null,
       });
 
       // yardName이 존재하면 Set에 추가
@@ -167,7 +179,6 @@ const fetchData = async () => {
     console.log("yardList.value", yardList.value); // 중복 제거된 yardName 리스트 출력
   } catch (error) {
     console.error(error);
-    message.value = `api 오류(${error})`;
   }
 };
 fetchData();
@@ -178,7 +189,6 @@ const getShipTypeList = async () => {
     shipTypeList.value = await getShipType();
   } catch (error) {
     console.error(error);
-    message.value = `api 오류(${error})`;
   }
 };
 
@@ -272,12 +282,14 @@ const filteredData = computed(() => {
 
 // 폼 상태 저장
 const formState = reactive({
+  put: false,
   shipId: "",
   shipType: null,
   shipName: "",
   imoNo: "",
   yardName: null,
   rescueCapa: "",
+  trialTypes: [],
 });
 
 // 필터 모달 열기
@@ -337,30 +349,55 @@ const handleEdit = () => {
 // 삭제 버튼 클릭 시
 const handleDelete = () => {
   console.log("삭제할 데이터:", selectedRow.value);
+  Modal.confirm({
+    title: '선박 정보 삭제',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '등록된 선박 정보를 삭제하시겠습니까?',
+    okText: 'Yes',
+    okType: 'danger',
+    cancelText: 'No',
+    onOk () {
+      console.log('OK');
+      deleteRequest(selectedRow.value.shipId);
+    },
+    onCancel() {
+      console.log('Cancel');
+    },
+  });
   menuVisible.value = false;
 };
+
+const deleteRequest = async (id) => {
+  await deleteShip(id);
+  reFetchData();
+}
 
 // 폼 상태 초기화 함수
 const resetFormState = () => {
   Object.assign(formState, {
+    put: false,
     shipId: "",
     shipType: null,
     shipName: "",
     imoNo: "",
     yardName: null,
     rescueCapa: "",
+    trialTypes: [],
   });
 };
 
 // 폼 상태 초기화 함수
 const setFormState = (data) => {
+  console.log('data : ', data);
   Object.assign(formState, {
+    put: true,
     shipId: data.shipId,
     shipType: data.shipType,
     shipName: data.shipName,
     imoNo: data.imoNo,
     yardName: data.yardName,
     rescueCapa: data.rescueCapa,
+    trialTypes: data.trialTypes,
   });
 };
 
@@ -434,6 +471,10 @@ const handleModalToggle = (value) => {
 const handleSubmit = (submittedData) => {
   console.log("Submitted form data:", submittedData);
 };
+
+const reFetchData = () => {
+  fetchData();
+}
 </script>
 
 <style lang="less" scoped>

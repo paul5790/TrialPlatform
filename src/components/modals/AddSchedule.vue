@@ -1,49 +1,47 @@
 <template>
-  <a-modal :open="open" title="새 일정 추가 / 일정 수정" @ok="handleSubmit" width="100%" @cancel="handleCancel">
+  <a-modal :open="open" title="새 일정 추가 / 일정 수정" @ok="handleSubmit" width="100%" @cancel="handleCancel" wrap-class-name="full-modal">
     <a-form layout="vertical">
-      <div style="display: flex; gap: 20px; align-items: center">
-        <!-- 선박 ID -->
-        <a-form-item label="선박 ID" style="flex: 1">
-          <a-input v-model:value="formState.shipId" placeholder="선박 ID 입력" />
-        </a-form-item>
+  <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+    
+    <!-- Trial Id -->
+    <div class="form-group">
+      <label class="form-label">Trial Id :</label>
+      <a-select
+        v-model:value="selectedTrial"
+        placeholder="Select Trial Id"
+        style="width: 250px;"
+        :options="trialIdItems.map((item) => ({ value: item }))"
+      />
+    </div>
 
-        <!-- 선종 선택 -->
-        <a-form-item label="선종 선택:" style="flex: 1">
-          <a-select v-model:value="formState.shipType" placeholder="선종 선택" style="width: 100%">
-            <a-select-option value="Container">Container</a-select-option>
-            <a-select-option value="addNew">+ 선종 추가</a-select-option>
-          </a-select>
-        </a-form-item>
+    <!-- Version -->
+    <div class="form-group">
+      <label class="form-label">Version :</label>
+      <a-select
+        v-model:value="selectedVersion"
+        placeholder="Select Version"
+        style="width: 150px; margin-right: 50px;"
+        :options="versionItems.map((item) => ({ value: item }))"
+      />
+    </div>
 
-        <!-- 시운전 타입 선택 -->
-        <a-form-item label="시운전 타입 선택:" style="flex: 1">
-          <a-select v-model:value="formState.testType" placeholder="시운전 타입 선택" style="width: 100%">
-            <a-select-option value="해상 시운전">해상 시운전</a-select-option>
-            <a-select-option value="addNew">+ 시운전 타입 추가</a-select-option>
-          </a-select>
-        </a-form-item>
+    <!-- 스케줄 자동 생성 버튼 -->
+    <a-button @click="autoGenerateSchedule" style="margin-right: 10px;">
+      스케줄 자동 생성
+    </a-button>
 
-        <!-- 시작 시간 -->
-        <a-form-item label="시작 시간:" style="flex: 1">
-          <a-date-picker v-model:value="formState.startTime" show-time placeholder="시작 시간 선택" style="width: 100%" />
-        </a-form-item>
+    <!-- Task 추가 -->
+    <a-button type="primary" @click="showAddTaskModal">Task 추가하기</a-button>
 
-        <!-- 스케줄 자동 생성 버튼 -->
-        <a-button @click="autoGenerateSchedule" style="margin-right: 10px">
-          스케줄 자동 생성
-        </a-button>
-
-        <!-- Task 추가 -->
-        <a-button type="primary" @click="showAddTaskModal">Task 추가하기</a-button>
-      </div>
-    </a-form>
+  </div>
+</a-form>
 
     <!-- AddTask 모달 컴포넌트 -->
     <AddTask :open="addTaskModalOpen" :tasks="tasks" @update:open="addTaskModalOpen = $event" @submit="handleAddTaskSubmit"  @task-added="handleTaskAdded"/>
 
     <!-- GanttChart와 우클릭 메뉴로 항목 편집 모달을 여는 기능 -->
     <a-dropdown :trigger="['contextmenu']">
-      <GanttChart :tasks="tasks" />
+      <GanttChart :tasks="tasks" :selected-trial="selectedTrial" />
       <template #overlay>
         <a-menu>
           <a-menu-item key="1" @click="editSchedule">Activity 항목 편집</a-menu-item>
@@ -62,6 +60,7 @@
 import { ref, defineProps, defineEmits } from 'vue';
 import AddTask from './schedule/AddTask.vue';
 import GanttChart from '@/components/GanttChart.vue';
+import { getTrial } from "../../api/Trial.js";
 import { useTasksStore } from '@/store/tasksStore';
 
 // Props와 emits 정의
@@ -72,6 +71,27 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:open', 'submit', 'openEditSchedule']);
+
+const trialIdItems = ref([]);
+const selectedTrial = ref();
+
+// Trial ID List 가져오기
+const getTrialList = async () => {
+  try {
+    const trialValue = await getTrial();
+    console.log('trialValue : ', trialValue);
+
+    trialValue.forEach((trial, index) => {
+      trialIdItems.value.push(trial.trialId);
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
+getTrialList();
+
+const versionItems = ref(["A", "B"]);
+const selectedVersion = ref();
 
 const addTaskModalOpen = ref(false); // Task 추가 모달 상태
 
@@ -126,5 +146,25 @@ const editSchedule = () => {
 
 .form-input {
   flex: 1;
+}
+</style>
+
+<style lang="less">
+.full-modal {
+  .ant-modal {
+    max-width: 98%; // 모달의 최대 너비를 화면의 95%로 설정
+    top: 2.5%;      // 화면 위쪽에서 2.5% 아래에 위치
+    padding-bottom: 2.5%; // 아래쪽 여백도 2.5% 추가
+    margin: 0 auto;  // 가운데 정렬
+  }
+  .ant-modal-content {
+    display: flex;
+    flex-direction: column;
+    height: calc(95vh); // 모달의 높이를 화면 높이의 95%로 설정
+  }
+  .ant-modal-body {
+    flex: 1;
+    overflow-y: auto; // 내용이 넘칠 경우 스크롤 활성화
+  }
 }
 </style>

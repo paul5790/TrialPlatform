@@ -48,7 +48,7 @@ export const useTasksStore = defineStore('tasks', () => {
       minute: 28,
       name: "Speed test",
       id: "A-1",
-      y: 2,
+      y: 5,
       color: '#55ff55'
     }
   ]);

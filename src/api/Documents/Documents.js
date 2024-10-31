@@ -3,9 +3,9 @@ import axios from "axios";
 import { apiLocation } from "../index"; // apiLocation 가져오기
 
 // Get Activity 전체
-export const getAllShips = async () => {
+export const getAllDocuments = async () => {
   try {
-    const response = await axios.get(`http://${apiLocation}/api/ship`, {
+    const response = await axios.get(`http://${apiLocation}/api/document`, {
       headers: {
         "Content-Type": "application/json",
       },
@@ -18,17 +18,13 @@ export const getAllShips = async () => {
 };
 
 // Post Ship
-export const postShip = async (data) => {
+export const postDocument = async (data) => {
   try {
-    const response = await axios.post(
-      `http://${apiLocation}/api/ship`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await axios.post(`http://${apiLocation}/api/document`, data, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching data:", error);
@@ -36,11 +32,11 @@ export const postShip = async (data) => {
   }
 };
 
-// Put Ship
-export const putShip = async (id, data) => {
+// Put Document
+export const putDocument = async (idx, data) => {
   try {
     const response = await axios.put(
-      `http://${apiLocation}/api/ship/${id}`,
+      `http://${apiLocation}/api/document/${idx}`,
       data,
       {
         headers: {
@@ -55,11 +51,11 @@ export const putShip = async (id, data) => {
   }
 };
 
-// Delete Ship
-export const deleteShip = async (id) => {
+// Delete Document
+export const deleteDocument = async (id) => {
   try {
     const response = await axios.delete(
-      `http://${apiLocation}/api/ship/${id}`,
+      `http://${apiLocation}/api/document/${id}`,
       {
         headers: {
           "Content-Type": "application/json",

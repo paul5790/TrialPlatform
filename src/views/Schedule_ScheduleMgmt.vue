@@ -1,9 +1,16 @@
 <template>
   <a-space
     direction="vertical"
-    style="width: 100%; height: 100%; padding: 30px"
+    style="width: 100%; height: 100%; padding: 20px"
   >
-    <a-card style="overflow-x: auto; white-space: nowrap; padding: 0px">
+    <a-card
+      style="
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 0px;
+        margin-bottom: 10px;
+      "
+    >
       <!-- items 배열을 순회하며 네모카드 생성 -->
       <a-card
         v-for="item in items"
@@ -32,132 +39,70 @@
         <p style="margin: 2px 0">Loc: {{ item.location }}</p>
       </a-card>
     </a-card>
-    <a-button
-      @click="showAddScheduleModal"
-      type="primary"
-      style="width: 200px; height: 40px"
-    >
-      <template #icon>
-        <PlusOutlined />
-      </template>
-      새 일정 추가
-    </a-button>
-    <div style="display: flex; align-items: center; gap: 20px">
-      <a-card
-        style="width: 85%; height: 50px"
-        body-style="padding: 7.5px; padding-left: 0px; display: flex; align-items: center; gap: 10px;"
+    <div class="button-container">
+      <!-- 왼쪽 버튼 -->
+      <a-button @click="showAddScheduleModal" type="primary" class="top-button">
+        + 선박 등록
+      </a-button>
+
+      <!-- 오른쪽 버튼 -->
+      <a-button
+        :icon="h(FilterOutlined)"
+        @click="showFilterModal"
+        class="top-button"
       >
-        <a-dropdown>
-          <template #overlay>
-            <a-menu @click="handleMenuClick">
-              <a-menu-item key="1">
-                <UserOutlined />
-                EndTime
-              </a-menu-item>
-              <a-menu-item key="2">
-                <UserOutlined />
-                2nd menu item
-              </a-menu-item>
-              <a-menu-item key="3">
-                <UserOutlined />
-                3rd item
-              </a-menu-item>
-            </a-menu>
-          </template>
-          <a-button
-            @click="handleButtonClick"
-            style="
-              width: 150px;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            "
-          >
-            {{ selectedMenu }}
-            <DownOutlined />
-          </a-button>
-        </a-dropdown>
-        <a-button :icon="h(FilterOutlined)" style="margin-left: 10px">
-        </a-button>
-        <a-input style="margin-left: 10px" v-model:value="formState.username" />
-      </a-card>
-      <a-button type="primary" style="width: 200px; height: 40px">
         필터링
       </a-button>
     </div>
 
-    <a-table :columns="columns" :data-source="dataSource" bordered>
-      <template #bodyCell="{ column, text, record }">
-        <template
-          v-if="
-            [
-              'ShipId',
-              'Status',
-              'StartTime',
-              'EndTime',
-              'Part',
-              'ShipTypes',
-              'TrialType',
-              'TotalActivity',
-              'Done',
-              'Revision',
-            ].includes(column.dataIndex)
-          "
-        >
-          <div>
-            <a-input
-              v-if="editableData[record.key]"
-              v-model:value="editableData[record.key][column.dataIndex]"
-              style="margin: -5px 0"
-            />
-            <template v-else>
-              {{ text }}
-            </template>
-          </div>
-        </template>
-        <template v-else-if="column.dataIndex === 'operation'">
-          <div class="editable-row-operations">
-            <span v-if="editableData[record.key]">
-              <a-typography-link @click="save(record.key)"
-                >Save</a-typography-link
-              >
-              <a-popconfirm
-                title="Sure to cancel?"
-                @confirm="cancel(record.key)"
-              >
-                <a>Cancel</a>
-              </a-popconfirm>
-            </span>
-            <span v-else>
-              <a @click="edit(record.key)">Edit</a>
-            </span>
-          </div>
-        </template>
-      </template>
-    </a-table>
+    <div @contextmenu.prevent>
+      <a-table
+        :columns="columns"
+        :pagination="{
+          pageSize: 13,
+          showSizeChanger: true,
+          pageSizeOptions: ['13'],
+        }"
+        :data-source="filteredData"
+        :row-key="(record) => record.key"
+        bordered
+        :customRow="customRow"
+        size="small"
+      >
+      </a-table>
+
+      <!-- 드롭다운 메뉴 -->
+      <div
+        v-if="menuVisible"
+        ref="contextMenu"
+        class="context-menu"
+        :style="{ top: `${menuPosition.y}px`, left: `${menuPosition.x}px` }"
+      >
+        <a-menu>
+          <a-menu-item key="edit" @click="handleEdit">수정</a-menu-item>
+          <a-menu-item key="delete" @click="handleDelete">삭제</a-menu-item>
+        </a-menu>
+      </div>
+    </div>
   </a-space>
 
+  <!-- 필터 모달 컴포넌트 -->
+  <ScheduleFilter
+    :open="filterModalVisible"
+    :shipTypeList="shipTypeList"
+    @update:open="handleFilterModalToggle"
+    @filter="applyFilter"
+  />
+
   <!-- 새 일정 추가 모달 -->
-    <AddSchedule
-
-      :open="isAddScheduleOpen"
-      :formState="formState"
-      :tasks="tasks"
-      @update:open="isAddScheduleOpen = $event"
-      @submit="handleAddScheduleSubmit"
-      @openEditSchedule="isEditScheduleOpen = true"
-    />
-
-
-
-  <!-- 항목 편집 모달 -->
-    <EditSchedule
-      :open="isEditScheduleOpen"
-      :allItems="allItems"
-      :addedItems="addedItems"
-      @update:open="isEditScheduleOpen = $event"
-      @submit="handleEditScheduleSubmit"
-    />
+  <AddSchedule
+    :open="isAddScheduleOpen"
+    :formState="formState"
+    :tasks="tasks"
+    @update:open="isAddScheduleOpen = $event"
+    @submit="handleAddScheduleSubmit"
+    @openEditSchedule="isEditScheduleOpen = true"
+  />
 </template>
 
 <script setup>
@@ -170,13 +115,77 @@ import {
   ArrowUpOutlined,
   ArrowDownOutlined,
 } from "@ant-design/icons-vue";
-import { ref, h, reactive, watch } from "vue";
+
+import {
+  ref,
+  h,
+  reactive,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  watch,
+} from "vue";
 import { cloneDeep } from "lodash-es";
+import ShipUploadModal from "@/components/modals/AddShip.vue";
+import ScheduleFilter from "@/components/Filter/ScheduleFilter.vue";
+import { getAllSchedule } from "../api/Schedule/Schedule.js";
+import { getShipType } from "../api/ShipType.js";
+import { ExclamationCircleOutlined } from "@ant-design/icons-vue";
+import { createVNode } from "vue";
+import { Modal } from "ant-design-vue";
+
 import GanttChart from "../components/GanttChart.vue";
-import { message } from "ant-design-vue";
-import AddSchedule from '@/components/modals/AddSchedule.vue';
-import EditSchedule from '@/components/modals/schedule/EditSchedule.vue';
-import { useTasksStore } from '@/store/tasksStore';
+import AddSchedule from "@/components/modals/AddSchedule.vue";
+import EditSchedule from "@/components/modals/schedule/EditSchedule.vue";
+import { useTasksStore } from "@/store/tasksStore";
+
+const tasksStore = useTasksStore();
+const tasks = tasksStore.tasks;
+
+// 모달 변수
+const isAddScheduleOpen = ref(false);
+const isEditScheduleOpen = ref(false);
+
+const showAddScheduleModal = () => {
+  isAddScheduleOpen.value = true;
+};
+
+const handleAddScheduleSubmit = (data) => {
+  tasksStore.addTask(data); // tasksStore에 Task 추가
+  console.log("New schedule submitted:", data);
+};
+
+const handleEditScheduleSubmit = (data) => {
+  console.log("Edited schedule submitted:", data);
+};
+
+// 모달 함수
+const showModal = () => {
+  // 폼 상태 초기화
+  resetFormState(); // 폼 초기화
+  open.value = true;
+};
+
+const showModal_1 = () => {
+  isModalOpen.value = true;
+};
+// OK 버튼 동작
+const handleOk = () => {
+  console.log("저장:", {
+    shipId: shipId.value,
+    shipType: shipType.value,
+    testType: testType.value,
+    startTime: startTime.value,
+  });
+  loading.value = true;
+  setTimeout(() => {
+    loading.value = false;
+    open.value = false;
+  }, 2000);
+};
+const handleCancel = () => {
+  open.value = false;
+};
 
 // 간트차트 tasks 데이터
 // const tasks = ref([
@@ -235,92 +244,6 @@ import { useTasksStore } from '@/store/tasksStore';
 //     color: '#55ff55'
 //   }
 // ]);
-const tasksStore = useTasksStore();
-const tasks = tasksStore.tasks;
-
-
-const isModalVisible = ref(false);
-const taskForm = ref({
-  name: "",
-  department: "Tech",
-  dependency: null,
-  milestone: false,
-});
-
-// 모달 열기/닫기
-const showModal_2 = () => {
-  isModalVisible.value = true;
-};
-const handleCancel_2 = () => {
-  isModalVisible.value = false;
-};
-
-// Task 추가
-const addTask = () => {
-  const newTask = {
-    name: taskForm.value.name,
-    start: Date.now(),
-    end: Date.now() + 1000 * 60 * 60 * 24 * 2, // 임의로 2일 기간을 부여
-    y:
-      taskForm.value.department === "Tech"
-        ? 0
-        : taskForm.value.department === "Marketing"
-        ? 1
-        : 2,
-    dependency: taskForm.value.dependency,
-    milestone: taskForm.value.milestone,
-  };
-  tasks.value.push(newTask); // 새로운 Task 추가
-  message.success("Task added successfully!");
-  isModalVisible.value = false;
-};
-
-// 새로운 Task를 추가하는 함수
-const autoGenerateSchedule = () => {
-  const newTaskId = tasks.value.length + 1;
-  const newTask = {
-    id: `Task ${newTaskId}`,
-    name: `New Task ${newTaskId}`,
-    start: "2023-09-10",
-    end: "2023-09-20",
-    progress: 0,
-    dependencies: "",
-  };
-
-  // 새로운 배열을 생성하여 참조 변경
-  tasks.value = [...tasks.value, newTask];
-};
-
-// Task의 순서를 변경하는 함수
-const swapTasks = () => {
-  const newTasks = [...tasks.value];
-  // 첫 번째와 두 번째 Task의 위치를 바꿈
-  const temp = newTasks[0];
-  newTasks[0] = newTasks[1];
-  newTasks[1] = temp;
-
-  // 참조를 변경하여 Vue가 감지하도록 함
-  tasks.value = newTasks;
-};
-
-// 모달 변수
-const loading = ref(false);
-const loading_1 = ref(false);
-const isAddScheduleOpen = ref(false);
-const isEditScheduleOpen = ref(false);
-
-const showAddScheduleModal = () => {
-  isAddScheduleOpen.value = true;
-};
-
-const handleAddScheduleSubmit = (data) => {
-  tasksStore.addTask(data); // tasksStore에 Task 추가
-  console.log('New schedule submitted:', data);
-};
-
-const handleEditScheduleSubmit = (data) => {
-  console.log('Edited schedule submitted:', data);
-};
 
 // tasksStore의 tasks 변경을 감지하고 Gantt 차트를 업데이트하는 watch 추가
 // watch(
@@ -333,17 +256,6 @@ const handleEditScheduleSubmit = (data) => {
 //   { deep: true }
 // );
 
-// 폼 데이터
-const shipId = ref("");
-const shipType = ref(null);
-const testType = ref(null);
-const startTime = ref(null);
-
-// 상태 변수
-const formState = reactive({
-  username: "",
-});
-
 // 선택한 메뉴를 저장할 변수
 const selectedMenu = ref("StartTime"); // 기본 버튼 텍스트
 
@@ -351,18 +263,11 @@ const handleButtonClick = (e) => {
   console.log("click left button", e);
 };
 
-// 메뉴 선택 시 호출되는 함수
-const handleMenuClick = (e) => {
-  console.log("click", e);
-  selectedMenu.value =
-    e.key === "1" ? "EndTime" : e.key === "2" ? "2nd menu item" : "3rd item";
-};
-
 // items 배열에 네모카드 정보를 넣음
 const items = ref([
   {
     id: 1,
-    shipId: "SN2286",
+    shipId: "Ship01",
     progress: 60,
     currentTask: 6,
     totalTasks: 10,
@@ -370,7 +275,7 @@ const items = ref([
   },
   {
     id: 2,
-    shipId: "SN2287",
+    shipId: "Ship02",
     progress: 60,
     currentTask: 6,
     totalTasks: 10,
@@ -392,253 +297,307 @@ const items = ref([
 // 데이터 테이블
 const columns = [
   {
-    title: "ShipId",
-    dataIndex: "ShipId",
+    title: "Trial Id",
+    dataIndex: "trialId",
     width: "10%",
   },
   {
-    title: "Status",
-    dataIndex: "Status",
+    title: "Start Time",
+    dataIndex: "startTime",
     width: "10%",
   },
   {
-    title: "StartTime",
-    dataIndex: "StartTime",
+    title: "End Time",
+    dataIndex: "endTime",
     width: "15%",
   },
   {
-    title: "EndTime",
-    dataIndex: "EndTime",
+    title: "Created Date",
+    dataIndex: "createdDate",
     width: "15%",
   },
   {
-    title: "ShipTypes",
-    dataIndex: "ShipTypes",
+    title: "Creator",
+    dataIndex: "creator",
     width: "10%",
   },
   {
-    title: "TrialType",
-    dataIndex: "TrialType",
-    width: "10%",
-  },
-
-  {
-    title: "TotalActivity",
-    dataIndex: "TotalActivity",
+    title: "Total Activity",
+    dataIndex: "totalActivity",
     width: "10%",
   },
   {
-    title: "Done",
-    dataIndex: "Done",
-    width: "10%",
-  },
-  {
-    title: "Revision",
-    dataIndex: "Revision",
-    width: "15%",
-  },
-  {
-    title: "operation",
-    dataIndex: "operation",
+    title: "Version",
+    dataIndex: "version",
     width: "5%",
   },
 ];
 
-const data = [];
-data.push(
-  {
-    key: 1,
-    ShipId: `SN2286`,
-    Status: `In progress`,
-    StartTime: `24.09.01T01:15:37.00`,
-    EndTime: `24.09.02T01:15:39.00`,
-    ShipTypes: `Container`,
-    TrialType: `Sea trial`,
-    TotalActivity: 110,
-    Done: 66,
-    Revision: `A`,
-  },
-  {
-    key: 2,
-    ShipId: `SN2260`,
-    Status: `In progress`,
-    StartTime: `24.09.02T01:15:37.00`,
-    EndTime: `24.09.03T01:15:39.00`,
-    ShipTypes: `Container`,
-    TrialType: `Sea trial`,
-    TotalActivity: 110,
-    Done: 66,
-    Revision: `A`,
-  },
-  {
-    key: 3,
-    ShipId: `SN2241`,
-    Status: `Ready`,
-    StartTime: `24.09.03T01:15:37.00`,
-    EndTime: `24.09.04T01:15:39.00`,
-    ShipTypes: `Bulk Carrier`,
-    TrialType: `Sea trial`,
-    TotalActivity: 3,
-    Done: 0,
-    Revision: `B`,
-  },
-  {
-    key: 4,
-    ShipId: `SN2184`,
-    Status: `Completed`,
-    StartTime: `24.09.04T01:15:37.00`,
-    EndTime: `24.09.05T01:15:39.00`,
-    ShipTypes: `Shuttle Tanker`,
-    TrialType: `Dock trial`,
-    TotalActivity: 49,
-    Done: 49,
-    Revision: `A`,
-  },
-  {
-    key: 5,
-    ShipId: `SN2184`,
-    Status: `Completed`,
-    StartTime: `24.09.04T01:15:37.00`,
-    EndTime: `24.09.05T01:15:39.00`,
-    ShipTypes: `Shuttle Tanker`,
-    TrialType: `Dock trial`,
-    TotalActivity: 49,
-    Done: 49,
-    Revision: `A`,
+const data = ref([]);
+const fetchData = async () => {
+  try {
+    const response = await getAllSchedule();
+    console.log(response);
+    data.value = [];
+
+    response.forEach((schedule, index) => {
+      data.value.push({
+        trialId: schedule.trialId || "",
+        startTime: schedule.startTime || "",
+        endTime: schedule.endTime || null,
+        createdDate: schedule.createdDate || "",
+        creator: schedule.creator || null,
+        totoalActivity: schedule.totoalActivity || "",
+        version: schedule.version || null,
+      });
+    });
+
+    console.log(data.value);
+  } catch (error) {
+    console.error(error);
   }
-);
+};
+fetchData();
 
 const dataSource = ref(data);
 const editableData = reactive({});
 
-const edit = (key) => {
-  editableData[key] = cloneDeep(
-    dataSource.value.filter((item) => key === item.key)[0]
-  );
-};
-const save = (key) => {
-  Object.assign(
-    dataSource.value.filter((item) => key === item.key)[0],
-    editableData[key]
-  );
-  delete editableData[key];
-};
-const cancel = (key) => {
-  delete editableData[key];
+const open = ref(false);
+
+// 필터 모달 열기 상태
+const filterModalVisible = ref(false);
+
+// 필터 모달 닫기
+const handleFilterModalToggle = (value) => {
+  filterModalVisible.value = value;
 };
 
-// 모달 함수
+// 필터된 데이터 저장용 상태
+const filters = ref({});
 
-const showModal = () => {
-  open.value = true;
+// 필터 모달에서 필터 적용 시 호출되는 함수
+const applyFilter = (newFilters) => {
+  console.log("Received Filters:", newFilters); // 로그로 전달받은 필터 확인
+  filters.value = newFilters;
 };
 
-const showModal_1 = () => {
-  isModalOpen.value = true;
-};
-// OK 버튼 동작
-const handleOk = () => {
-  console.log("저장:", {
-    shipId: shipId.value,
-    shipType: shipType.value,
-    testType: testType.value,
-    startTime: startTime.value,
+// 필터된 데이터 계산
+const filteredData = computed(() => {
+  console.log("Current filter value:", filters.value); // 로그: 필터 값 확인
+
+  // 필터가 없으면 전체 데이터를 반환
+  if (Object.keys(filters.value).length === 0) {
+    return data.value;
+  }
+
+  // search 필터가 있는 경우: 모든 컬럼에서 값 포함 여부 확인
+  if (filters.value.search) {
+    const searchValue = filters.value.search.toLowerCase();
+    return data.value.filter((item) => {
+      // 각 row의 모든 컬럼 값 중 하나라도 검색어를 포함하는지 확인
+      return Object.values(item).some((val) =>
+        String(val).toLowerCase().includes(searchValue)
+      );
+    });
+  }
+
+  // 필터 조건에 맞게 데이터 필터링
+  return data.value.filter((item) => {
+    return Object.entries(filters.value).every(([key, value]) => {
+      console.log("key : ", key);
+      console.log("value : ", value);
+      console.log("item", item);
+
+      // rescueCapa 필터 처리
+      if (key === "rescueCapa") {
+        const minValue = parseFloat(value.min) || -Infinity; // 최소값 없으면 -Infinity
+        const maxValue = parseFloat(value.max) || Infinity; // 최대값 없으면 Infinity
+        const itemValue = parseFloat(item[key]) || 0; // 비교할 값, 없으면 0
+
+        console.log(
+          "minValue:",
+          minValue,
+          "maxValue:",
+          maxValue,
+          "itemValue:",
+          itemValue
+        );
+
+        // item의 값이 min과 max 범위 내에 있는지 확인
+        return itemValue >= minValue && itemValue <= maxValue;
+      }
+
+      // shipType 필터 처리 (배열이거나 비어있는 경우)
+      if (key === "shipType") {
+        if (Array.isArray(value) && value.length === 0) {
+          // 배열이 비어있는 경우 모든 데이터를 포함
+          console.log("Empty shipType array, showing all data.");
+          return true;
+        }
+        if (Array.isArray(value)) {
+          // 배열에 포함된 값 중 하나라도 일치하면 true 반환
+          console.log("Checking shipType:", value, "against", item[key]);
+          return value.includes(item[key]);
+        }
+      }
+
+      // 일반 필터 처리 (문자열 일치 여부)
+      const targetValue = item[key] ?? ""; // undefined 방지
+      console.log("targetValue : ", targetValue);
+
+      return targetValue.toLowerCase().includes(value.toLowerCase());
+    });
   });
-  loading.value = true;
+});
+
+// 폼 상태 저장
+const formState = reactive({
+  put: false,
+  shipId: "",
+  shipType: null,
+  shipName: "",
+  imoNo: "",
+  yardName: null,
+  rescueCapa: "",
+  trialTypes: [],
+});
+
+// 필터 모달 열기
+const showFilterModal = async () => {
+  filterModalVisible.value = true;
+};
+
+// 상태 관리 변수들 정의
+const menuVisible = ref(false);
+const contextMenu = ref(null);
+const menuPosition = reactive({ x: 0, y: 0 });
+const selectedRow = ref(null);
+
+const customRow = (record) => ({
+  onContextmenu: (event) => {
+    onRowContextMenu(record, event); // 우클릭 핸들러 호출
+  },
+});
+// 우클릭 이벤트 핸들러
+const onRowContextMenu = (record, event) => {
+  event.preventDefault(); // 기본 메뉴 차단
+  selectedRow.value = record;
+  menuVisible.value = true;
+
+  menuPosition.x = event.clientX;
+  menuPosition.y = event.clientY;
+
+  // 메뉴 위치 설정
   setTimeout(() => {
-    loading.value = false;
-    open.value = false;
-  }, 2000);
+    const menuEl = contextMenu.value;
+    if (menuEl) {
+      menuEl.style.left = `${menuPosition.x}px`;
+      menuEl.style.top = `${menuPosition.y}px`;
+      menuEl.style.position = "absolute";
+      menuEl.style.zIndex = "1000";
+    }
+  }, 0);
 };
-const handleCancel = () => {
-  open.value = false;
+
+// 수정 버튼 클릭 시
+const handleEdit = () => {
+  console.log("수정할 데이터:", selectedRow.value);
+  setFormState(selectedRow.value);
+
+  open.value = true;
+  menuVisible.value = false;
 };
 
-// ------------------------  ----------------------------
-const isModalOpen = ref(false);
-// 전체 항목과 추가된 항목 리스트
-const allItems = ref([
-  "A-3 Speed test",
-  "A-4 Steering test",
-  "A-5 M/E test",
-  "A-6 HIL test",
-  "G-2 Running test",
-  "G-3 Running test",
-  "G-4 Running test",
-  "G-5 Running test",
-]);
-const addedItems = ref([
-  "A-1 Speed test",
-  "A-2 Steering test",
-  "G-1 M/E test",
-  "G-10 HIL test",
-  "G-11 Running test",
-  "B-18 FMEA test",
-]);
+// 삭제 버튼 클릭 시
+const handleDelete = () => {
+  console.log("삭제할 데이터:", selectedRow.value);
+  Modal.confirm({
+    title: "선박 정보 삭제",
+    icon: createVNode(ExclamationCircleOutlined),
+    content: "등록된 선박 정보를 삭제하시겠습니까?",
+    okText: "Yes",
+    okType: "danger",
+    cancelText: "No",
+    onOk() {
+      console.log("OK");
+      deleteRequest(selectedRow.value.shipId);
+    },
+    onCancel() {
+      console.log("Cancel");
+    },
+  });
+  menuVisible.value = false;
+};
 
-// 선택된 항목들
-const selectedAllItems = ref([]);
-const selectedAddedItem = ref(null);
+const deleteRequest = async (id) => {
+  await deleteShip(id);
+  reFetchData();
+};
 
-// 전체 항목에서 선택/해제
-const toggleAllItem = (item) => {
-  if (selectedAddedItem.value) {
-    // 추가된 항목을 선택 중이면 전체 항목을 선택했을 때 모두 초기화
-    selectedAddedItem.value = null;
+// 폼 상태 초기화 함수
+const resetFormState = () => {
+  Object.assign(formState, {
+    put: false,
+    shipId: "",
+    shipType: null,
+    shipName: "",
+    imoNo: "",
+    yardName: null,
+    rescueCapa: "",
+    trialTypes: [],
+  });
+};
+
+// 폼 상태 초기화 함수
+const setFormState = (data) => {
+  console.log("data : ", data);
+  Object.assign(formState, {
+    put: true,
+    shipId: data.shipId,
+    shipType: data.shipType,
+    shipName: data.shipName,
+    imoNo: data.imoNo,
+    yardName: data.yardName,
+    rescueCapa: data.rescueCapa,
+    trialTypes: data.trialTypes,
+  });
+};
+
+// 메뉴 닫기 핸들러
+const handleMenuClose = (open) => {
+  menuVisible.value = open;
+};
+
+// 외부 클릭 감지 이벤트 핸들러
+const handleClickOutside = (event) => {
+  const menuEl = contextMenu.value;
+  if (menuEl && !menuEl.contains(event.target)) {
+    menuVisible.value = false;
   }
-
-  if (selectedAllItems.value.includes(item)) {
-    selectedAllItems.value = selectedAllItems.value.filter((i) => i !== item);
-  } else {
-    selectedAllItems.value.push(item);
-  }
 };
 
-// 추가된 항목 선택
-const selectAddedItem = (item) => {
-  if (selectedAllItems.value.length > 0) {
-    // 전체 항목을 선택 중이면 추가된 항목을 선택했을 때 모두 초기화
-    selectedAllItems.value = [];
-  }
-  selectedAddedItem.value = item;
+// 컴포넌트 마운트 시 외부 클릭 이벤트 리스너 등록
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+
+// 컴포넌트 언마운트 시 이벤트 리스너 제거
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
+
+// 모달 열림 상태를 업데이트하는 함수
+const handleModalToggle = (value) => {
+  open.value = value;
 };
 
-// 전체 항목에서 추가된 항목으로 이동
-const addItems = () => {
-  addedItems.value = [...addedItems.value, ...selectedAllItems.value];
-  allItems.value = allItems.value.filter(
-    (item) => !selectedAllItems.value.includes(item)
-  );
-  selectedAllItems.value = [];
+// 모달 제출 처리
+const handleSubmit = (submittedData) => {
+  console.log("Submitted form data:", submittedData);
 };
 
-// 추가된 항목에서 다시 전체 항목으로 이동
-const removeItem = () => {
-  allItems.value = [...allItems.value, selectedAddedItem.value];
-  addedItems.value = addedItems.value.filter(
-    (item) => item !== selectedAddedItem.value
-  );
-  selectedAddedItem.value = null;
-};
-
-// 추가된 항목 리스트에서 항목 순서 변경 (위로 이동)
-const moveUp = () => {
-  const index = addedItems.value.indexOf(selectedAddedItem.value);
-  if (index > 0) {
-    const temp = addedItems.value[index - 1];
-    addedItems.value[index - 1] = addedItems.value[index];
-    addedItems.value[index] = temp;
-  }
-};
-
-// 추가된 항목 리스트에서 항목 순서 변경 (아래로 이동)
-const moveDown = () => {
-  const index = addedItems.value.indexOf(selectedAddedItem.value);
-  if (index < addedItems.value.length - 1) {
-    const temp = addedItems.value[index + 1];
-    addedItems.value[index + 1] = addedItems.value[index];
-    addedItems.value[index] = temp;
-  }
+const reFetchData = () => {
+  fetchData();
 };
 
 // style
@@ -706,6 +665,5 @@ const handleMouseLeave = (event) => {
 .selected {
   background-color: #bae7ff;
 }
-
 
 </style>

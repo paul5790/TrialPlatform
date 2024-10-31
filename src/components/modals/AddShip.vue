@@ -11,6 +11,7 @@
         <label class="form-label">Ship Id :</label>
         <a-input
           v-model:value="formState.shipId"
+          :disabled="formState.put"
           placeholder="Enter Ship Id"
           class="form-input"
         />
@@ -111,7 +112,7 @@
       <div class="form-item">
         <label class="form-label">Trial Type :</label>
         <a-select
-          v-model:value="trialType"
+          v-model:value="formState.trialTypes"
           placeholder="Select Trial Type"
           class="form-input"
           mode="multiple"
@@ -222,9 +223,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, defineComponent, defineProps, watch  } from "vue";
+import { ref, reactive, defineComponent, defineProps, watch } from "vue";
 import { getAllActivities } from "../../api/Activities/Activities.js";
 import { getShipType, postShipType } from "../../api/ShipType.js";
+import { postShip, putShip } from "../../api/Ship/Ship.js";
 import { getTrialType, postTrialType } from "../../api/TrialType.js";
 const props = defineProps({
   open: Boolean, // 부모로부터 받는 open 상태
@@ -233,12 +235,14 @@ const props = defineProps({
 });
 
 const formState = reactive({
+  put: false,
   shipId: "",
   shipType: null,
   shipName: "",
   imoNo: "",
   yardName: null,
   rescueCapa: "",
+  trialTypes: [],
 });
 
 const yardListItems = ref([]);
@@ -259,25 +263,25 @@ watch(
 watch(
   () => props.formState, // 감시할 대상
   (newVal) => {
-    console.log("zz");
     if (newVal && Object.keys(newVal).length > 0) {
       // 새 값이 존재할 경우 복사
       Object.assign(formState, newVal);
     } else {
       // 값이 없을 경우 초기 상태로 설정
       Object.assign(formState, {
+        put: false,
         shipId: "",
         shipType: null,
         shipName: "",
         imoNo: "",
         yardName: null,
         rescueCapa: "",
+        trialTypes: [],
       });
     }
   },
   { immediate: true, deep: true } // 컴포넌트가 마운트될 때 즉시 실행
 );
-
 
 const VNodes = defineComponent({
   props: {
@@ -301,7 +305,6 @@ const getShipTypeList = async () => {
     shipTypeItems.value = await getShipType();
   } catch (error) {
     console.error(error);
-    message.value = `api 오류(${error})`;
   }
 };
 
@@ -311,7 +314,6 @@ const getTrialTypeList = async () => {
     trialTypeItems.value = await getTrialType();
   } catch (error) {
     console.error(error);
-    message.value = `api 오류(${error})`;
   }
 };
 
@@ -335,11 +337,12 @@ const getActList = async () => {
   try {
     const response = await getAllActivities();
     response.forEach((activity, index) => {
-      activityList.value.push(`${activity.activityId}(${activity.activityName})`);
+      activityList.value.push(
+        `${activity.activityId}(${activity.activityName})`
+      );
     });
   } catch (error) {
     console.error(error);
-    message.value = `api 오류(${error})`;
   }
 };
 
@@ -432,12 +435,6 @@ const handleCancelAddYard = () => {
   addYard.value = false; // 모달 닫기
 };
 
-
-
-const trialType = ref([]);
-
-
-
 const emit = defineEmits(["update:open", "submit"]); // 부모에게 상태 업데이트 전달
 
 const loading = ref(false);
@@ -454,23 +451,48 @@ const handleCancel = () => {
 };
 
 // 제출 처리 함수
-const handleSubmit = () => {
+const handleSubmit = async () => {
   loading.value = true;
+  try {
+    console.log('formState.put', formState.put);
+    if (formState.put) {
+      const reqBody = {
+        shipType: formState.shipType,
+        shipName: formState.shipName,
+        imoNo: formState.imoNo,
+        yardName: formState.yardName,
+        rescueCapa: parseInt(formState.rescueCapa, 10),
+        trialTypes: [...formState.trialTypes],
+      };
 
-  const reqBody = {
-    trialType: newTrialTypeItem.value,
-    activityIds: newTrialTypeActId.value,
-  };
+      console.log("reqBody", reqBody);
 
-  console.log("reqBody", reqBody);
+      await putShip(formState.shipId, reqBody);
+    } else {
+      const reqBody = {
+        shipId: formState.shipId,
+        shipType: formState.shipType,
+        shipName: formState.shipName,
+        imoNo: formState.imoNo,
+        yardName: formState.yardName,
+        rescueCapa: parseInt(formState.rescueCapa, 10),
+        trialTypes: [...formState.trialTypes],
+      };
 
+      console.log("reqBody", reqBody);
 
-
-  setTimeout(() => {
+      await postShip(reqBody);
+    }
+    setTimeout(() => {
+        loading.value = false;
+      }, 1000);
+      emit("refreshData");
+  } catch (error) {
+    console.error("Error submitting form:", error); // 오류 로그
+  } finally {
     loading.value = false;
-    // emit("submit", props.formState); // 부모에게 formState 데이터 제출
     emit("update:open", false); // 모달 닫기
-  }, 1000);
+  }
 };
 </script>
 
