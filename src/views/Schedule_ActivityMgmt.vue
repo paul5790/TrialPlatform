@@ -98,11 +98,14 @@ import {
   DownOutlined,
   FilterOutlined,
 } from "@ant-design/icons-vue";
-import { getAllActivities } from "../api/Activities/Activities.js";
+import { getAllActivities, deleteActivity } from "../api/Activities/Activities.js";
 import { ref, h, reactive, computed, onMounted, onBeforeUnmount } from "vue";
 import { cloneDeep } from "lodash-es";
 import AddActivity from "@/components/modals/AddActivity.vue";
 import ActivityFilter from "@/components/Filter/ActivityFilter.vue";
+import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
+import { createVNode } from 'vue';
+import { Modal } from 'ant-design-vue';
 
 // 모달 변수
 const loading = ref(false);
@@ -127,8 +130,10 @@ const formState = reactive({
   activityId: "",
   part: null,
   activityName: "",
-  timeTaken: "",
-  engineLoad: "",
+  timeTaken: null,
+  engineLoad: null,
+  shipTypes: [],
+  trialTypes: [],
 });
 
 // 상태 관리 변수들 정의
@@ -184,7 +189,7 @@ const handleDelete = () => {
     cancelText: 'No',
     onOk () {
       console.log('OK');
-      deleteRequest(selectedRow.value.shipId);
+      deleteRequest(selectedRow.value.activityId);
     },
     onCancel() {
       console.log('Cancel');
@@ -194,7 +199,7 @@ const handleDelete = () => {
 };
 
 const deleteRequest = async (id) => {
-  await deleteShip(id);
+  await deleteActivity(id);
   reFetchData();
 }
 
@@ -205,8 +210,10 @@ const resetFormState = () => {
     activityId: "",
     part: null,
     activityName: "",
-    timeTaken: "",
-    engineLoad: "",
+    timeTaken: null,
+    engineLoad: null,
+    shipTypes: [],
+    trialTypes: [],
   });
 };
 
@@ -215,12 +222,12 @@ const setFormState = (data) => {
   console.log('data : ', data);
   Object.assign(formState, {
     put: true,
-    shipId: data.shipId,
-    shipType: data.shipType,
-    shipName: data.shipName,
-    imoNo: data.imoNo,
-    yardName: data.yardName,
-    rescueCapa: data.rescueCapa,
+    activityId: data.activityId,
+    part: data.part,
+    activityName: data.activityName,
+    timeTaken: data.timeTaken,
+    engineLoad: data.engineLoad,
+    shipTypes: data.shipTypes,
     trialTypes: data.trialTypes,
   });
 };
@@ -286,7 +293,7 @@ const filteredData = computed(() => {
       console.log("item", item);
 
       // rescueCapa 필터 처리
-      if (key === "rescueCapa") {
+      if (key === "timeTaken" || key === "engineLoad" ) {
         const minValue = parseFloat(value.min) || -Infinity; // 최소값 없으면 -Infinity
         const maxValue = parseFloat(value.max) || Infinity; // 최대값 없으면 Infinity
         const itemValue = parseFloat(item[key]) || 0; // 비교할 값, 없으면 0
@@ -302,6 +309,20 @@ const filteredData = computed(() => {
 
         // item의 값이 min과 max 범위 내에 있는지 확인
         return itemValue >= minValue && itemValue <= maxValue;
+      }
+
+      // Part 필터 처리 (배열이거나 비어있는 경우)
+      if (key === "part") {
+        if (Array.isArray(value) && value.length === 0) {
+          // 배열이 비어있는 경우 모든 데이터를 포함
+          console.log("Empty part array, showing all data.");
+          return true;
+        }
+        if (Array.isArray(value)) {
+          // 배열에 포함된 값 중 하나라도 일치하면 true 반환
+          console.log("Checking part:", value, "against", item[key]);
+          return value.includes(item[key]);
+        }
       }
 
       // 일반 필터 처리 (문자열 일치 여부)
@@ -372,6 +393,7 @@ const fetchData = async () => {
   try {
     const response = await getAllActivities();
     console.log(response);
+    data.value = [];
     response.forEach((activity, index) => {
       data.value.push({
         key: index + 1,
@@ -380,8 +402,8 @@ const fetchData = async () => {
         timeTaken: activity.timeTaken || 0,
         engineLoad: activity.engineLoad || 0,
         part: activity.part || "",
-        shipTypes: activity.shipTypes || "",
-        trialTypes: activity.trialTypes || "",
+        shipTypes: activity.shipTypes || [],
+        trialTypes: activity.trialTypes || [],
       });
     });
     console.log(data.value);

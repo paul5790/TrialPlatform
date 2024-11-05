@@ -212,7 +212,7 @@ const VNodes = defineComponent({
 const trialIdItems = ref([]);
 
 const activityIdItems = ref([]);
-const docTypeItems = ref(["Rule", "Regulation", "Design", "Plan", "Procedure", "Result", "Report"]);
+const docTypeItems = ref(["Rule&Regulation", "Design", "Plan", "Procedure", "Result", "Report"]);
 const descriptionTypeItems = ref(["Information", "Issue", "Punchlist", "ETC"])
 
 // Trial ID List 가져오기
