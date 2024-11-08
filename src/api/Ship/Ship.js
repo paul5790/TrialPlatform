@@ -1,74 +1,46 @@
-import axios from "axios";
+// api/ship.js
+import { apiRequest } from "../index";
 
-import { apiLocation } from "../index"; // apiLocation 가져오기
-
-// Get Activity 전체
+// Get all ships
 export const getAllShips = async () => {
   try {
-    const response = await axios.get(`http://${apiLocation}/api/ship`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await apiRequest("get", "/api/ship");
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching ships:", error);
     throw error;
   }
 };
 
-// Post Ship
+// Post a new ship
 export const postShip = async (data) => {
   try {
-    const response = await axios.post(
-      `http://${apiLocation}/api/ship`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("post", "/api/ship", data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error posting ship:", error);
     throw error;
   }
 };
 
-// Put Ship
+// Update a ship
 export const putShip = async (id, data) => {
   try {
-    const response = await axios.put(
-      `http://${apiLocation}/api/ship/${id}`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("put", `/api/ship/${id}`, data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error updating ship:", error);
     throw error;
   }
 };
 
-// Delete Ship
+// Delete a ship
 export const deleteShip = async (id) => {
   try {
-    const response = await axios.delete(
-      `http://${apiLocation}/api/ship/${id}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("delete", `/api/ship/${id}`);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error deleting ship:", error);
     throw error;
   }
 };

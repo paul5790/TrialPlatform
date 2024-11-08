@@ -1,70 +1,45 @@
-import axios from "axios";
+import { apiRequest } from "../index";
 
-import { apiLocation } from "../index"; // apiLocation 가져오기
-
-// Get Document 전체
+// Get all documents
 export const getAllDocuments = async () => {
   try {
-    const response = await axios.get(`http://${apiLocation}/api/document`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await apiRequest("get", "/api/document");
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching documents:", error);
     throw error;
   }
 };
 
-// Post Document
+// Post a new document
 export const postDocument = async (data) => {
   try {
-    const response = await axios.post(`http://${apiLocation}/api/document`, data, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await apiRequest("post", "/api/document", data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error posting document:", error);
     throw error;
   }
 };
 
-// Put Document
+// Update a document by ID
 export const putDocument = async (idx, data) => {
   try {
-    const response = await axios.put(
-      `http://${apiLocation}/api/document/${idx}`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("put", `/api/document/${idx}`, data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error updating document:", error);
     throw error;
   }
 };
 
-// Delete Document
+// Delete a document by ID
 export const deleteDocument = async (id) => {
   try {
-    const response = await axios.delete(
-      `http://${apiLocation}/api/document/${id}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("delete", `/api/document/${id}`);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error deleting document:", error);
     throw error;
   }
 };

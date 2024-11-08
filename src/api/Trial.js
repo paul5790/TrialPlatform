@@ -1,21 +1,12 @@
-import axios from "axios";
-
-import { apiLocation } from "./index"; // apiLocation 가져오기
+import { apiRequest } from "./index";
 
 // Get Trial Type List
 export const getTrial = async () => {
   try {
-    const response = await axios.get(
-      `http://${apiLocation}/api/trial`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("get", "/api/trial");
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching trial data:", error);
     throw error;
   }
 };

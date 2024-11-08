@@ -1,77 +1,56 @@
-import axios from "axios";
+import { apiRequest } from "../index";
 
-import { apiLocation } from "../index"; // apiLocation 가져오기
-
-// Get Report 전체
+// Get all reports
 export const getAllReports = async () => {
   try {
-    const response = await axios.get(
-      `http://${apiLocation}/api/dailyreportstatus`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("get", "/api/dailyreport");
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching reports:", error);
     throw error;
   }
 };
 
-// Post Ship
+// Get daily activity status by trial
+export const getDailyActivityStatus = async (trial) => {
+  try {
+    const response = await apiRequest("get", `/api/activitystatus/${trial}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching activity status:", error);
+    throw error;
+  }
+};
+
+// Post new document
 export const postDocument = async (data) => {
   try {
-    const response = await axios.post(
-      `http://${apiLocation}/api/dailyreportstatus`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("post", "/api/dailyreport", data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error posting document:", error);
     throw error;
   }
 };
 
-// Put Document
+// Update document by ID
 export const putDocument = async (idx, data) => {
   try {
-    const response = await axios.put(
-      `http://${apiLocation}/api/dailyreportstatus/${idx}`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("put", `/api/dailyreport/${idx}`, data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error updating document:", error);
     throw error;
   }
 };
 
-// Delete Document
+// Delete document by ID
 export const deleteDocument = async (id) => {
   try {
-    const response = await axios.delete(
-      `http://${apiLocation}/api/dailyreportstatus/${id}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("delete", `/api/dailyreport/${id}`);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error deleting document:", error);
     throw error;
   }
 };

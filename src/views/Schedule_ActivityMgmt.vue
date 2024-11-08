@@ -6,7 +6,7 @@
     <div class="button-container">
       <!-- 왼쪽 버튼 -->
       <a-button @click="showModal" type="primary" class="top-button">
-        + 새 활동 추가
+        + 테스트 항목 추가
       </a-button>
 
       <!-- 오른쪽 버튼 -->

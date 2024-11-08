@@ -42,7 +42,7 @@
     <div class="button-container">
       <!-- 왼쪽 버튼 -->
       <a-button @click="showAddScheduleModal" type="primary" class="top-button">
-        + 선박 등록
+        + 일정 등록
       </a-button>
 
       <!-- 오른쪽 버튼 -->
@@ -79,7 +79,7 @@
         :style="{ top: `${menuPosition.y}px`, left: `${menuPosition.x}px` }"
       >
         <a-menu>
-          <a-menu-item key="edit" @click="handleEdit">수정</a-menu-item>
+          <a-menu-item key="edit" @click="handleEdit">상세보기/수정</a-menu-item>
           <a-menu-item key="delete" @click="handleDelete">삭제</a-menu-item>
         </a-menu>
       </div>
@@ -98,6 +98,8 @@
   <AddSchedule
     :open="isAddScheduleOpen"
     :formState="formState"
+    :selectedTrialId="selectedTrialId"
+    :selectedVersion="selectedVersion"
     :tasks="tasks"
     @update:open="isAddScheduleOpen = $event"
     @submit="handleAddScheduleSubmit"
@@ -147,6 +149,8 @@ const isAddScheduleOpen = ref(false);
 const isEditScheduleOpen = ref(false);
 
 const showAddScheduleModal = () => {
+  selectedTrialId.value = null;
+  selectedVersion.value = null;
   isAddScheduleOpen.value = true;
 };
 
@@ -493,12 +497,17 @@ const onRowContextMenu = (record, event) => {
   }, 0);
 };
 
+const selectedTrialId = ref();
+const selectedVersion = ref();
+
 // 수정 버튼 클릭 시
 const handleEdit = () => {
   console.log("수정할 데이터:", selectedRow.value);
-  setFormState(selectedRow.value);
+  selectedTrialId.value = selectedRow.value.trialId;
+  selectedVersion.value = selectedRow.value.version;
+  console.log(selectedVersion.value);
 
-  open.value = true;
+  isAddScheduleOpen.value = true;
   menuVisible.value = false;
 };
 
@@ -557,10 +566,6 @@ const setFormState = (data) => {
   });
 };
 
-// 메뉴 닫기 핸들러
-const handleMenuClose = (open) => {
-  menuVisible.value = open;
-};
 
 // 외부 클릭 감지 이벤트 핸들러
 const handleClickOutside = (event) => {
@@ -570,25 +575,7 @@ const handleClickOutside = (event) => {
   }
 };
 
-// 컴포넌트 마운트 시 외부 클릭 이벤트 리스너 등록
-onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
-});
 
-// 컴포넌트 언마운트 시 이벤트 리스너 제거
-onBeforeUnmount(() => {
-  document.removeEventListener("click", handleClickOutside);
-});
-
-// 모달 열림 상태를 업데이트하는 함수
-const handleModalToggle = (value) => {
-  open.value = value;
-};
-
-// 모달 제출 처리
-const handleSubmit = (submittedData) => {
-  console.log("Submitted form data:", submittedData);
-};
 
 const reFetchData = () => {
   fetchData();
@@ -604,6 +591,17 @@ const handleMouseOver = (event) => {
 const handleMouseLeave = (event) => {
   event.currentTarget.style.transform = "scale(1)";
 };
+
+
+// 컴포넌트 마운트 시 외부 클릭 이벤트 리스너 등록
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+
+// 컴포넌트 언마운트 시 이벤트 리스너 제거
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
 </script>
 
 <style lang="less" scoped>

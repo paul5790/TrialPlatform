@@ -1,21 +1,15 @@
-import axios from "axios";
+import { apiRequest } from "../index";
 
-import { apiLocation } from "../index"; // apiLocation 가져오기
-
-// Get Schedule 전체
+// Get Task by Trial and Version
 export const getTask = async (trial, version) => {
   try {
-    const response = await axios.get(
-      `http://${apiLocation}/api/schedule/activities?trialId=${trial}&version=A`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+    const response = await apiRequest(
+      "get",
+      `/api/schedule/activities?trialId=${trial}&version=${version}`
     );
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching task data:", error);
     throw error;
   }
 };

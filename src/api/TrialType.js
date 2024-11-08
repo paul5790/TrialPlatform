@@ -1,21 +1,15 @@
-import axios from "axios";
-
-import { apiLocation } from "./index"; // apiLocation 가져오기
+import { apiRequest } from "./index";
 
 // Get Trial Type List
 export const getTrialType = async () => {
   try {
-    const response = await axios.get(
-      `http://${apiLocation}/api/trialtype/distinct-trialtype`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+    const response = await apiRequest(
+      "get",
+      "/api/trialtype/distinct-trialtype"
     );
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching trial type data:", error);
     throw error;
   }
 };
@@ -23,18 +17,14 @@ export const getTrialType = async () => {
 // Post Trial Type
 export const postTrialType = async (data) => {
   try {
-    const response = await axios.post(
-      `http://${apiLocation}/api/trialtype/add-trialtype`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+    const response = await apiRequest(
+      "post",
+      "/api/trialtype/add-trialtype",
+      data
     );
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error adding trial type data:", error);
     throw error;
   }
 };

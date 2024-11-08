@@ -1,37 +1,20 @@
-import axios from "axios";
-
-import { apiLocation } from "../index"; // apiLocation 가져오기
+import { apiRequest } from "../index";
 
 // Get Boarding by Trial
 export const getBoarding = async (trial) => {
   try {
-    const response = await axios.get(
-      `http://${apiLocation}/api/boardingmgmt/${trial}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("get", `/api/boardingmgmt/${trial}`);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching boarding data:", error);
     throw error;
   }
 };
 
-// Post 요청으로 새로운 Personnel 추가
+// Post request to add a new Personnel
 export const postPersonnel = async (data) => {
   try {
-    const response = await axios.post(
-      `http://${apiLocation}/api/personnel`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("post", "/api/personnel", data);
     return response.data;
   } catch (error) {
     console.error("Error adding personnel:", error);
@@ -39,39 +22,24 @@ export const postPersonnel = async (data) => {
   }
 };
 
-// Put Personnel
+// Update Personnel by ID
 export const putPersonnel = async (id, data) => {
   try {
-    const response = await axios.put(
-      `http://${apiLocation}/api/personnel/${id}`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("put", `/api/personnel/${id}`, data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error updating personnel:", error);
     throw error;
   }
 };
 
-// Delete Personnel
+// Delete Personnel by ID
 export const deletePersonnel = async (id) => {
   try {
-    const response = await axios.delete(
-      `http://${apiLocation}/api/personnel/${id}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("delete", `/api/personnel/${id}`);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error deleting personnel:", error);
     throw error;
   }
 };

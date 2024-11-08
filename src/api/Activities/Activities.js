@@ -1,74 +1,46 @@
-import axios from "axios";
+// api/activity.js
+import { apiRequest } from "../index";
 
-import { apiLocation } from "../index";  // apiLocation 가져오기
-
-// Get Activity 전체
+// Get all activities
 export const getAllActivities = async () => {
   try {
-    const response = await axios.get(`http://${apiLocation}/api/activity`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await apiRequest("get", "/api/activity");
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching activities:", error);
     throw error;
   }
 };
 
-// Post Activity
+// Post a new activity
 export const postActivity = async (data) => {
   try {
-    const response = await axios.post(
-      `http://${apiLocation}/api/activity`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("post", "/api/activity", data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error posting activity:", error);
     throw error;
   }
 };
 
-// Put Activity
+// Update an activity
 export const putActivity = async (id, data) => {
   try {
-    const response = await axios.put(
-      `http://${apiLocation}/api/activity/${id}`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("put", `/api/activity/${id}`, data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error updating activity:", error);
     throw error;
   }
 };
 
-// Delete Activity
+// Delete an activity
 export const deleteActivity = async (id) => {
   try {
-    const response = await axios.delete(
-      `http://${apiLocation}/api/activity/${id}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await apiRequest("delete", `/api/activity/${id}`);
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error deleting activity:", error);
     throw error;
   }
 };

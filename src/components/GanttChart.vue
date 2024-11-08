@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, defineProps } from "vue";
+import { ref, onMounted, watch, defineProps, nextTick } from "vue";
 import Highcharts from "highcharts";
 import Gantt from "highcharts/modules/gantt";
 import DragDrop from "highcharts/modules/draggable-points"; // 드래그 앤 드롭 모듈 추가
@@ -35,7 +35,8 @@ const tasksStore = useTasksStore(); // Pinia store 사용
 // props로 tasks 받기
 const props = defineProps({
   tasks: Array,
-  selectedTrial: String,
+  selectedTrialId: String,
+  selectedVersion: String,
 });
 
 // 모달 상태와 선택된 Task 정보 관리
@@ -76,9 +77,9 @@ const convertTasksWithActivityTimes = (tasks) => {
 const taskForm = ref([]);
 
 // Task 가져오기
-const getTaskList = async (trial) => {
+const getTaskList = async (trial, version) => {
   try {
-    const taskValue = await getTask(trial, "");
+    const taskValue = await getTask(trial, version);
     console.log('taskValue : ', taskValue);
     taskForm.value = [];
 
@@ -118,15 +119,23 @@ const getTaskList = async (trial) => {
   }
 };
 
-getTaskList('');
 // selectedTrial 변경 시 로그를 출력하는 watch 추가
 watch(
-  () => props.selectedTrial, // 감시할 대상 (selectedTrial)
-  (newVal, oldVal) => {
-    console.log(`selectedTrial 변경: 이전 값 = ${oldVal}, 새로운 값 = ${newVal}`);
-    getTaskList(newVal);
+  [() => props.selectedTrialId, () => props.selectedVersion],
+  async ([newTrialId, newVersion]) => {
+    await nextTick();  // DOM이 완전히 렌더링된 후에 동작
+    console.log(`trial: ${props.selectedTrialId}, version: ${props.selectedVersion}`);
+    getTaskList(props.selectedTrialId, props.selectedVersion);
   }
 );
+
+// onMounted를 사용해 초기값 처리
+onMounted(() => {
+  if (props.selectedTrialId || props.selectedVersion) {
+    console.log(`onMounted - 초기값 처리: trial: ${props.selectedTrialId}, version: ${props.selectedVersion}`);
+    getTaskList(props.selectedTrialId, props.selectedVersion);
+  }
+});
 
 
 // Gantt 차트 생성 함수

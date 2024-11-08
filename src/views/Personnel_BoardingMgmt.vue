@@ -20,7 +20,7 @@
         </a-form-item>
       </div>
       <div style="height: 90px;">
-        <a-form-item label="구명보트 탑승 인원 : " style="margin-bottom: 5px;">[ {{ numPerson }} ] / 99명 (총 구명보트 탑승 가능 인원)</a-form-item>
+        <a-form-item label="구명보트 탑승 인원 : " style="margin-bottom: 5px;">[ {{ numPerson }} ] / 99명 (총 탑승 가능 인원)</a-form-item>
         <a-form-item label="총 식수 인원 : " style="margin-bottom: 0px;">[ {{ numPerson }} ]명</a-form-item>
       </div>
 
@@ -250,20 +250,21 @@ const filteredData = computed(() => {
       console.log("value : ", value);
       console.log("item", item);
 
-      // rescueCapa 필터 처리
-      if (key === "rescueCapa") {
-        const minValue = parseFloat(value.min) || -Infinity; // 최소값 없으면 -Infinity
-        const maxValue = parseFloat(value.max) || Infinity; // 최대값 없으면 Infinity
-        const itemValue = parseFloat(item[key]) || 0; // 비교할 값, 없으면 0
+      // boardingTime, deboardingTime 필터 처리
+      if (key === "boardingTime" || key === "deboardingTime") {
+        // min과 max 값이 유효한 날짜 문자열로 전달되었는지 확인하고 Date 객체로 변환
+        const minValue = value.min ? new Date(value.min) : new Date(-8640000000000000); // 최소값이 없으면 -Infinity에 해당하는 날짜
+        const maxValue = value.max ? new Date(value.max) : new Date(8640000000000000); // 최대값이 없으면 +Infinity에 해당하는 날짜
+        const itemValue = item[key] ? new Date(item[key]) : null;
 
-        console.log(
-          "minValue:",
-          minValue,
-          "maxValue:",
-          maxValue,
-          "itemValue:",
-          itemValue
-        );
+        if (!itemValue) return false; // item 값이 없으면 필터 조건에 맞지 않음
+
+        // 초를 00으로 설정
+        if (minValue) minValue.setSeconds(0, 0);
+        if (maxValue) maxValue.setSeconds(0, 0);
+        if (itemValue) itemValue.setSeconds(0, 0);
+
+        console.log("minValue:", minValue, "maxValue:", maxValue, "itemValue:", itemValue);
 
         // item의 값이 min과 max 범위 내에 있는지 확인
         return itemValue >= minValue && itemValue <= maxValue;

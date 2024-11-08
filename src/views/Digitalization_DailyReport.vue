@@ -63,7 +63,7 @@
   </a-space>
 
   <!-- 문서 업로드 모달 컴포넌트 -->
-  <ShipUploadModal
+  <ReportUploadModal
     :open="open"
     :formState="formState"
     :yardList="yardList"
@@ -91,7 +91,7 @@ import {
 } from "@ant-design/icons-vue";
 import { ref, h, reactive, computed, onMounted, onBeforeUnmount } from "vue";
 import { cloneDeep } from "lodash-es";
-import ShipUploadModal from "@/components/modals/AddShip.vue";
+import ReportUploadModal from "@/components/modals/AddReport.vue";
 import ShipFilter from "@/components/Filter/ShipFilter.vue";
 import { getAllReports } from "@/api/DailyReport/Report.js";
 import { getShipType } from "../api/ShipType.js";
@@ -143,6 +143,7 @@ const fetchData = async () => {
         dailyReportStatusIdx: report.dailyReportStatusIdx || null,
         trialId: report.trialId || "",
         dailyReportCreatedDate: report.dailyReportCreatedDate || "",
+        creator: report.creator || "",
         shipLocation: report.shipLocation || "",
         totalActivity: report.totalActivity || 0,
         done: report.done || 0,

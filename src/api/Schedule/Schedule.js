@@ -1,18 +1,12 @@
-import axios from "axios";
+import { apiRequest } from "../index";
 
-import { apiLocation } from "../index"; // apiLocation 가져오기
-
-// Get Schedule 전체
+// Get all Schedules
 export const getAllSchedule = async () => {
   try {
-    const response = await axios.get(`http://${apiLocation}/api/schedule`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await apiRequest("get", "/api/schedule");
     return response.data;
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching schedule data:", error);
     throw error;
   }
 };

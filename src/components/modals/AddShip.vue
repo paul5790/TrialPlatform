@@ -439,12 +439,6 @@ const emit = defineEmits(["update:open", "submit"]); // 부모에게 상태 업�
 
 const loading = ref(false);
 
-// 파일 선택 핸들러
-const handleFileSelect = (file) => {
-  props.formState.file = file.name;
-  return false;
-};
-
 // 모달 닫기 함수
 const handleCancel = () => {
   emit("update:open", false); // 부모에게 모달을 닫으라고 알림
