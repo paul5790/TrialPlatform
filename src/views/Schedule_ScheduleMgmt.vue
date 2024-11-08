@@ -256,12 +256,6 @@ const handleCancel = () => {
 //   { deep: true }
 // );
 
-// 선택한 메뉴를 저장할 변수
-const selectedMenu = ref("StartTime"); // 기본 버튼 텍스트
-
-const handleButtonClick = (e) => {
-  console.log("click left button", e);
-};
 
 // items 배열에 네모카드 정보를 넣음
 const items = ref([

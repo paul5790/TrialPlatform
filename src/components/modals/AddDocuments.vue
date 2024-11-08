@@ -1,7 +1,7 @@
 <template>
   <a-modal
     :open="open"
-    title="문서 업로드"
+    title="문서 업로드 / 수정"
     @ok="handleSubmit"
     @cancel="handleCancel"
   >

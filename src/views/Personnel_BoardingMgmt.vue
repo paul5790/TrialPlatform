@@ -1,197 +1,106 @@
 <template>
   <a-space
     direction="vertical"
-    style="width: 100%; height: 100%; padding: 30px"
+    style="width: 100%; height: 100%; padding: 20px"
   >
     <div
-      style="display: flex; align-items: center; justify-content: space-between"
+      style="display: flex; align-items: center; justify-content: space-between;"
     >
       <!-- 왼쪽: RoomNo와 Ship Types -->
-      <div style="display: flex; align-items: center; gap: 20px">
-        <a-form-item label="Ship Id 선택:" style="width: 100%">
+      <div style="display: flex;">
+        <a-form-item label="Trial Id 선택:" style="width: 100%">
           <a-select
-            v-model:value="shipId"
+            v-model:value="selectedTrial"
             @change="handleSelectChange"
             placeholder="Select Ship Id"
-            style="width: 100%"
+            style="width: 300px;"
+            :options="trialIdItems.map((item) => ({ value: item }))"
           >
-            <a-select-option value="SN2288">SN2288</a-select-option>
-            <a-select-option value="SN2287">SN2287</a-select-option>
           </a-select>
         </a-form-item>
+      </div>
+      <div style="height: 90px;">
+        <a-form-item label="구명보트 탑승 인원 : " style="margin-bottom: 5px;">[ {{ numPerson }} ] / 99명 (총 구명보트 탑승 가능 인원)</a-form-item>
+        <a-form-item label="총 식수 인원 : " style="margin-bottom: 0px;">[ {{ numPerson }} ]명</a-form-item>
       </div>
 
       <!-- 오른쪽: 조회 버튼 -->
       <!-- <a-button style="width: 100px" @click="searchData">조회</a-button> -->
     </div>
-    <div v-if="showTable" style="margin-top: 20px">
-      <a-button
-        @click="showModal"
-        type="primary"
-        style="width: 200px; height: 40px"
-      >
-        승선자 명단 추가
+    <div class="button-container">
+      <!-- 왼쪽 버튼 -->
+      <a-button @click="showModal" type="primary" class="top-button">
+        + 승선자 명단 추가
       </a-button>
 
+      <!-- 오른쪽 버튼 -->
+      <a-button
+        :icon="h(FilterOutlined)"
+        @click="showFilterModal"
+        class="top-button"
+      >
+        필터링
+      </a-button>
+    </div>
+
+    <div @contextmenu.prevent>
       <a-table
         :columns="columns"
-        :data-source="dataSource"
+        :pagination="{
+          pageSize: 13,
+          showSizeChanger: true,
+          pageSizeOptions: ['13'],
+        }"
+        :data-source="filteredData"
+        :row-key="(record) => record.key"
         bordered
-        style="margin-top: 10px"
+        :customRow="customRow"
+        size="small"
       >
-        <template #bodyCell="{ column, text, record }">
-          <template
-            v-if="
-              [
-                'Name',
-                'Company',
-                'ScheduleBoardingDate',
-                'BoardingStatus',
-                'RoomNo',
-                'WorkDetails',
-              ].includes(column.dataIndex)
-            "
-          >
-            <div>
-              <a-input
-                v-if="editableData[record.key]"
-                v-model:value="editableData[record.key][column.dataIndex]"
-                style="margin: -5px 0"
-              />
-              <template v-else>
-                {{ text }}
-              </template>
-            </div>
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'trialTypes'">
+            <span>
+              <a-tag v-for="(tag, index) in record.trialTypes" :key="index">
+                {{ tag.toUpperCase() }}
+              </a-tag>
+            </span>
           </template>
-          <template v-else-if="column.dataIndex === 'operation'">
-            <div class="editable-row-operations">
-              <span v-if="editableData[record.key]">
-                <a-typography-link @click="save(record.key)"
-                  >Save</a-typography-link
-                >
-                <a-popconfirm
-                  title="Sure to cancel?"
-                  @confirm="cancel(record.key)"
-                >
-                  <a>Cancel</a>
-                </a-popconfirm>
-              </span>
-              <span v-else>
-                <a @click="edit(record.key)">Edit</a>
-              </span>
-            </div>
+          <template v-else>
+            {{ record[column.dataIndex] }}
           </template>
         </template>
       </a-table>
+
+      <!-- 드롭다운 메뉴 -->
+      <div
+        v-if="menuVisible"
+        ref="contextMenu"
+        class="context-menu"
+        :style="{ top: `${menuPosition.y}px`, left: `${menuPosition.x}px` }"
+      >
+        <a-menu>
+          <a-menu-item key="edit" @click="handleEdit">수정</a-menu-item>
+          <a-menu-item key="delete" @click="handleDelete">삭제</a-menu-item>
+        </a-menu>
+      </div>
     </div>
   </a-space>
-  <a-modal
-    v-model:open="open"
-    title="새 일일보고 작성 / 일일보고 수정"
-    @ok="handleOk"
-    :width="900"
-  >
-    <a-form layout="vertical">
-      <a-button
-        @click="showModal"
-        type="primary"
-        style="width: 200px; height: 40px; margin-top: 20px"
-      >
-        승선자 명단 추가
-      </a-button>
 
-      <a-input v-model:value="Names" style="margin-top: 10px" />
+  <!-- 문서 업로드 모달 컴포넌트 -->
+  <BoardingUploadModal
+    :open="open"
+    :formState="formState"
+    @update:open="handleModalToggle"
+    @submit="handleSubmit"
+    @refreshData="reFetchData"
+  />
 
-      <div
-        style="display: flex; align-items: center; gap: 20px; margin-top: 30px"
-      >
-        <a-card
-          style="width: 85%; height: 50px"
-          body-style="padding: 7.5px; padding-left: 0px; display: flex; align-items: center; gap: 10px;"
-        >
-          <a-dropdown>
-            <template #overlay>
-              <a-menu @click="handleMenuClick">
-                <a-menu-item key="1">
-                  <UserOutlined />
-                  EngineLoad
-                </a-menu-item>
-                <a-menu-item key="2">
-                  <UserOutlined />
-                  2nd menu item
-                </a-menu-item>
-                <a-menu-item key="3">
-                  <UserOutlined />
-                  3rd item
-                </a-menu-item>
-              </a-menu>
-            </template>
-            <a-button
-              @click="handleButtonClick"
-              style="
-                width: 150px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-              "
-            >
-              {{ selectedMenu }}
-              <DownOutlined />
-            </a-button>
-          </a-dropdown>
-          <a-button :icon="h(FilterOutlined)" style="margin-left: 10px">
-          </a-button>
-          <a-input style="margin-left: 10px" />
-        </a-card>
-        <a-button type="primary" style="width: 200px; height: 40px">
-          필터링
-        </a-button>
-      </div>
-
-      <a-table
-        :columns="columns2"
-        :data-source="dataSource2"
-        :row-selection="rowSelection"
-        bordered
-        style="margin-top: 10px"
-      >
-        <template #bodyCell="{ column, text, record }">
-          <template
-            v-if="
-              [
-              'PersonnelId',
-              'Name',
-              'Company',
-              'Department',
-              'Role',
-              'Phone',
-              'Email',
-              ].includes(column.dataIndex)
-            "
-          >
-            <div>
-              <a-input
-                v-if="editableData[record.key]"
-                v-model:value="editableData[record.key][column.dataIndex]"
-                style="margin: -5px 0"
-              />
-              <template v-else>
-                {{ text }}
-              </template>
-            </div>
-          </template>
-        </template>
-      </a-table>
-    </a-form>
-
-    <!-- Footer buttons (Return / Submit) -->
-    <template #footer>
-      <a-button key="back" @click="handleCancel">Return</a-button>
-      <a-button key="submit" type="primary" :loading="loading" @click="handleOk"
-        >Submit</a-button
-      >
-    </template>
-  </a-modal>
+  <!-- 필터 모달 컴포넌트 -->
+  <BoardingFilter
+    :open="filterModalVisible"
+    @update:open="handleFilterModalToggle"
+    @filter="applyFilter"
+  />
 </template>
 
 <script setup>
@@ -202,287 +111,422 @@ import {
   DownOutlined,
   FilterOutlined,
 } from "@ant-design/icons-vue";
-import { ref, h, reactive, computed, watch } from "vue";
+import { ref, h, reactive, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { cloneDeep } from "lodash-es";
+import BoardingUploadModal from "@/components/modals/AddBoarding.vue";
+import BoardingFilter from "@/components/Filter/BoardingFilter.vue";
+import { getAllShips, deleteShip } from "../api/Ship/Ship.js";
+import { getShipType } from "../api/ShipType.js";
+import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
+import { getTrial } from "@/api/Trial.js";
+import { getBoarding } from "@/api/Personnel/Boarding.js"
+import { createVNode } from 'vue';
+import { Modal } from 'ant-design-vue';
 
-// 상태 변수
-const showTable = ref(false);
 
-const shipId = ref(null);
-const period = ref(null);
+const trialIdItems = ref([]);
+const selectedTrial = ref();
 
-// ------------------------------------------------- 모달 변수 -------------------------------------------------------
-const loading = ref(false);
+// Trial ID List 가져오기
+const getTrialList = async () => {
+  try {
+    const trialValue = await getTrial();
+    console.log('trialValue : ', trialValue);
+
+    trialValue.forEach((trial, index) => {
+      trialIdItems.value.push(trial.trialId);
+    });
+    selectedTrial.value = trialIdItems.value[0];
+    
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+watch(
+  selectedTrial,
+  (newValue, oldValue) => {
+    fetchData(newValue);
+  }
+);
+
+
+
+const data = ref([]); // 테이블에 사용할 데이터
+const numPerson = ref(0);
+const statusList = ([]);
+
+// 문서 업로드 모달 변수
+
+const fetchData = async (trial) => {
+  try {
+    const response = await getBoarding(trial);
+    console.log(response);
+    data.value = [];
+    numPerson.value = response.length;
+
+    const status = new Set(); // 중복을 제거하기 위한 Set 생성
+    
+    response.forEach((board, index) => {
+      data.value.push({
+        personnelIdx: board.boardId || "",
+        name: board.name || "",
+        company: board.company || "",
+        boardingTime: board.boardingTime || "",
+        deboardingTime: board.deboardingTime || "",
+        boardingCount: board.boardingCount || 0,
+        workDetails: board.workDetails || "",
+        roomNo: board.roomNo || "",
+        boardingStatus: board.boardingStatus || "",
+      });
+
+      // yardName이 존재하면 Set에 추가
+      if (ship.boardingStatus) {
+        status.add(ship.boardingStatus);
+      }
+    });
+
+    // Set을 배열로 변환하여 yardList에 저장
+    statusList.value = Array.from(status);
+    console.log(statusList.value);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+
+const shipTypeList = ref([]); // Ship Type 목록 상태 저장
+const getShipTypeList = async () => {
+  try {
+    shipTypeList.value = await getShipType();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 const open = ref(false);
 
-const m_shipId = ref(null);
+// 필터 모달 열기 상태
+const filterModalVisible = ref(false);
 
-const writeAble = ref(false);
+// 필터 모달 닫기
+const handleFilterModalToggle = (value) => {
+  filterModalVisible.value = value;
+};
 
-watch(shipId, (newValue) => {
-  console.log("?"); // 변경 사항이 감지되면 이 로그가 출력됩니다
-  showTable.value = newValue !== null;
+// 필터된 데이터 저장용 상태
+const filters = ref({});
+
+// 필터 모달에서 필터 적용 시 호출되는 함수
+const applyFilter = (newFilters) => {
+  console.log("Received Filters:", newFilters); // 로그로 전달받은 필터 확인
+  filters.value = newFilters;
+};
+
+// 필터된 데이터 계산
+const filteredData = computed(() => {
+  console.log("Current filter value:", filters.value); // 로그: 필터 값 확인
+
+  // 필터가 없으면 전체 데이터를 반환
+  if (Object.keys(filters.value).length === 0) {
+    return data.value;
+  }
+
+  // search 필터가 있는 경우: 모든 컬럼에서 값 포함 여부 확인
+  if (filters.value.search) {
+    const searchValue = filters.value.search.toLowerCase();
+    return data.value.filter((item) => {
+      // 각 row의 모든 컬럼 값 중 하나라도 검색어를 포함하는지 확인
+      return Object.values(item).some((val) =>
+        String(val).toLowerCase().includes(searchValue)
+      );
+    });
+  }
+
+  // 필터 조건에 맞게 데이터 필터링
+  return data.value.filter((item) => {
+    return Object.entries(filters.value).every(([key, value]) => {
+      console.log("key : ", key);
+      console.log("value : ", value);
+      console.log("item", item);
+
+      // rescueCapa 필터 처리
+      if (key === "rescueCapa") {
+        const minValue = parseFloat(value.min) || -Infinity; // 최소값 없으면 -Infinity
+        const maxValue = parseFloat(value.max) || Infinity; // 최대값 없으면 Infinity
+        const itemValue = parseFloat(item[key]) || 0; // 비교할 값, 없으면 0
+
+        console.log(
+          "minValue:",
+          minValue,
+          "maxValue:",
+          maxValue,
+          "itemValue:",
+          itemValue
+        );
+
+        // item의 값이 min과 max 범위 내에 있는지 확인
+        return itemValue >= minValue && itemValue <= maxValue;
+      }
+
+      // shipType 필터 처리 (배열이거나 비어있는 경우)
+      if (key === "shipType") {
+        if (Array.isArray(value) && value.length === 0) {
+          // 배열이 비어있는 경우 모든 데이터를 포함
+          console.log("Empty shipType array, showing all data.");
+          return true;
+        }
+        if (Array.isArray(value)) {
+          // 배열에 포함된 값 중 하나라도 일치하면 true 반환
+          console.log("Checking shipType:", value, "against", item[key]);
+          return value.includes(item[key]);
+        }
+      }
+
+      // 일반 필터 처리 (문자열 일치 여부)
+      const targetValue = item[key] ?? ""; // undefined 방지
+      console.log("targetValue : ", targetValue);
+
+      return targetValue.toLowerCase().includes(value.toLowerCase());
+    });
+  });
 });
 
-// m_shipId를 직접 감시해야 합니다
-watch(m_shipId, (newValue) => {
-  console.log("?"); // 변경 사항이 감지되면 이 로그가 출력됩니다
-  writeAble.value = newValue !== null;
+// 폼 상태 저장
+const formState = reactive({
+  put: false,
+  shipId: "",
+  shipType: null,
+  shipName: "",
+  imoNo: "",
+  yardName: null,
+  rescueCapa: "",
+  trialTypes: [],
 });
 
-// 선택한 메뉴를 저장할 변수
-const selectedMenu = ref("Button"); // 기본 버튼 텍스트
+// 필터 모달 열기
+const showFilterModal = async () => {
+  await getShipTypeList();
+  filterModalVisible.value = true;
+};
 
-// 데이터 테이블
+// 상태 관리 변수들 정의
+const menuVisible = ref(false);
+const contextMenu = ref(null);
+const menuPosition = reactive({ x: 0, y: 0 });
+const selectedRow = ref(null);
+
+const customRow = (record) => ({
+  onContextmenu: (event) => {
+    onRowContextMenu(record, event); // 우클릭 핸들러 호출
+  },
+});
+// 우클릭 이벤트 핸들러
+const onRowContextMenu = (record, event) => {
+  event.preventDefault(); // 기본 메뉴 차단
+  selectedRow.value = record;
+  menuVisible.value = true;
+
+  menuPosition.x = event.clientX;
+  menuPosition.y = event.clientY;
+
+  // 메뉴 위치 설정
+  setTimeout(() => {
+    const menuEl = contextMenu.value;
+    if (menuEl) {
+      menuEl.style.left = `${menuPosition.x}px`;
+      menuEl.style.top = `${menuPosition.y}px`;
+      menuEl.style.position = "absolute";
+      menuEl.style.zIndex = "1000";
+    }
+  }, 0);
+};
+
+// 모달 함수
+const showModal = () => {
+  // 폼 상태 초기화
+  resetFormState(); // 폼 초기화
+  open.value = true;
+};
+
+// 수정 버튼 클릭 시
+const handleEdit = () => {
+  console.log("수정할 데이터:", selectedRow.value);
+  setFormState(selectedRow.value);
+
+  open.value = true;
+  menuVisible.value = false;
+};
+
+// 삭제 버튼 클릭 시
+const handleDelete = () => {
+  console.log("삭제할 데이터:", selectedRow.value);
+  Modal.confirm({
+    title: '선박 정보 삭제',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '등록된 선박 정보를 삭제하시겠습니까?',
+    okText: 'Yes',
+    okType: 'danger',
+    cancelText: 'No',
+    onOk () {
+      console.log('OK');
+      deleteRequest(selectedRow.value.shipId);
+    },
+    onCancel() {
+      console.log('Cancel');
+    },
+  });
+  menuVisible.value = false;
+};
+
+const deleteRequest = async (id) => {
+  await deleteShip(id);
+  reFetchData();
+}
+
+// 폼 상태 초기화 함수
+const resetFormState = () => {
+  Object.assign(formState, {
+    put: false,
+    shipId: "",
+    shipType: null,
+    shipName: "",
+    imoNo: "",
+    yardName: null,
+    rescueCapa: "",
+    trialTypes: [],
+  });
+};
+
+// 폼 상태 초기화 함수
+const setFormState = (data) => {
+  console.log('data : ', data);
+  Object.assign(formState, {
+    put: true,
+    shipId: data.shipId,
+    shipType: data.shipType,
+    shipName: data.shipName,
+    imoNo: data.imoNo,
+    yardName: data.yardName,
+    rescueCapa: data.rescueCapa,
+    trialTypes: data.trialTypes,
+  });
+};
+
+// 메뉴 닫기 핸들러
+const handleMenuClose = (open) => {
+  menuVisible.value = open;
+};
+
+// 외부 클릭 감지 이벤트 핸들러
+const handleClickOutside = (event) => {
+  const menuEl = contextMenu.value;
+  if (menuEl && !menuEl.contains(event.target)) {
+    menuVisible.value = false;
+  }
+};
+
 const columns = [
-  {
+    {
     title: "Name",
-    dataIndex: "Name",
-    width: "12%",
+    dataIndex: "name",
+    width: "10%",
   },
   {
     title: "Company",
-    dataIndex: "Company",
+    dataIndex: "company",
+    width: "10%",
+  },
+  {
+    title: "BoardingTime",
+    dataIndex: "boardingTime",
     width: "15%",
   },
   {
-    title: "ScheduleBoardingDate",
-    dataIndex: "ScheduleBoardingDate",
+    title: "DeboardingTime",
+    dataIndex: "deboardingTime",
     width: "15%",
   },
   {
-    title: "BoardingStatus",
-    dataIndex: "BoardingStatus",
+    title: "BoardingCount",
+    dataIndex: "boardingCount",
+    width: "10%",
+  },
+  {
+    title: "WorkDetails",
+    dataIndex: "workDetails",
     width: "15%",
   },
   {
     title: "RoomNo",
-    dataIndex: "RoomNo",
-    width: "15%",
+    dataIndex: "roomNo",
+    width: "7%",
   },
   {
-    title: "WorkDetails",
-    dataIndex: "WorkDetails",
-    width: "15%",
-  },
-  {
-    title: "operation",
-    dataIndex: "operation",
-    width: "5%",
+    title: "BoardingStatus",
+    dataIndex: "boardingStatus",
+    width: "10%",
   },
 ];
 
-// 데이터 테이블
-const columns2 = [
-  {
-    title: "PersonnelId",
-    dataIndex: "PersonnelId",
-    width: "10%",
-  },
-  {
-    title: "Name",
-    dataIndex: "Name",
-    width: "15%",
-  },
-  {
-    title: "Company",
-    dataIndex: "Company",
-    width: "10%",
-  },
-  {
-    title: "Department",
-    dataIndex: "Department",
-    width: "15%",
-  },
-  {
-    title: "Role",
-    dataIndex: "Role",
-    width: "10%",
-  },
-  {
-    title: "Phone",
-    dataIndex: "Phone",
-    width: "20%",
-  },
-  {
-    title: "Email",
-    dataIndex: "Email",
-    width: "20%",
-  },
-];
+// 모달 열림 상태를 업데이트하는 함수
+const handleModalToggle = (value) => {
+  open.value = value;
+};
 
-const Names = ref("");
+// 모달 제출 처리
+const handleSubmit = (submittedData) => {
+  console.log("Submitted form data:", submittedData);
+};
 
-const rowSelection = ref({
-  onChange: (selectedRowKeys, selectedRows) => {
-    //console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
-  },
-  onSelect: (record, selected, selectedRows) => {
-    //console.log(record, selected, selectedRows);
-    // console.log(selectedRows);
-    // Name 값만 추출하는 함수
-    const getNames = (rows) => {
-      if (!rows || rows.length === 0) {
-        return ""; // 값이 없으면 빈 문자열 반환
-      }
+const reFetchData = () => {
+  fetchData();
+}
 
-      // 배열이 1개일 때는 해당 Name만 반환
-      if (rows.length === 1) {
-        return rows[0].Name;
-      }
-
-      // 배열이 2개 이상일 때는 Name들을 쉼표로 구분하여 반환
-      return rows.map((row) => row.Name).join(", ");
-    };
-
-    // Names 변수에 결과 저장
-    const names = getNames(selectedRows);
-
-    Names.value = names;
-
-    // 결과 출력
-    console.log(names); // "사람0, 사람1"
-  },
-  onSelectAll: (selected, selectedRows, changeRows) => {
-    //console.log(selected, selectedRows, changeRows);
-  },
+// 컴포넌트 마운트 시 외부 클릭 이벤트 리스너 등록
+onMounted( async () => {
+  document.addEventListener("click", handleClickOutside);
+  await getTrialList();
+  // fetchData(selectedTrial.value);
 });
 
-const data = [];
-data.push(
-  {
-    key: 1,
-    Name: `JH-CHOI`,
-    Company: `Xinnos`,
-    ScheduleBoardingDate: `2024.09.09T08:00`,
-    BoardingStatus: `Onboard`,
-    RoomNo: `305`,
-    WorkDetails: `Thruster test ...`,
-  },
-  {
-    key: 2,
-    Name: `JM-KIM`,
-    Company: `Xinnos`,
-    ScheduleBoardingDate: `2024.09.09T16:00`,
-    BoardingStatus: `Onboard`,
-    RoomNo: `308`,
-    WorkDetails: `DP commission ...`,
-  },
-  {
-    key: 3,
-    Name: `HH-KIM`,
-    Company: `Xinnos`,
-    ScheduleBoardingDate: `2024.09.10T08:00`,
-    BoardingStatus: `Onboard`,
-    RoomNo: `107`,
-    WorkDetails: `Inspect network ...`,
-  },
-  {
-    key: 4,
-    Name: `SH-LEE`,
-    Company: `Xinnos`,
-    ScheduleBoardingDate: `2024.09.10T16:00`,
-    BoardingStatus: `Onboard`,
-    RoomNo: ``,
-    WorkDetails: ``,
-  }
-);
+// 컴포넌트 언마운트 시 이벤트 리스너 제거
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
 
-const data2 = [];
-data2.push(
-  {
-    key: 1,
-    PersonnelId: `SD-1`,
-    Name: `JH-CHOI`,
-    Company: `Xinnos`,
-    Department: `Electric Des..`,
-    Role: `Shipyard`,
-    Phone: `010-1234-4567`,
-    Email: `abcd1234@xinnos.com`,
-  },
-  {
-    key: 2,
-    PersonnelId: `SD-2`,
-    Name: `JM-KIM`,
-    Company: `Xinnos`,
-    Department: `Electric Des..`,
-    Role: `Shipyard`,
-    Phone: `010-6624-9567`,
-    Email: `ffcd1234@xinnos.com`,
-  },
-  {
-    key: 1,
-    PersonnelId: `SD-1`,
-    Name: `HH-KIM`,
-    Company: `Xinnos`,
-    Department: `Electric Des..`,
-    Role: `Class`,
-    Phone: `010-5436-4567`,
-    Email: `fhrd1234@xinnos.com`,
-  },
-  {
-    key: 1,
-    PersonnelId: `SD-1`,
-    Name: `SH-LEE`,
-    Company: `Xinnos`,
-    Department: `Electric Des..`,
-    Role: `Class`,
-    Phone: `010-1244-4567`,
-    Email: `brdr1234@xinnos.com`,
-  },
-);
-
-const dataSource = ref(data);
-const dataSource2 = ref(data2)
-const editableData = reactive({});
-
-const edit = (key) => {
-  editableData[key] = cloneDeep(
-    dataSource.value.filter((item) => key === item.key)[0]
-  );
-};
-const save = (key) => {
-  Object.assign(
-    dataSource.value.filter((item) => key === item.key)[0],
-    editableData[key]
-  );
-  delete editableData[key];
-};
-const cancel = (key) => {
-  delete editableData[key];
-};
-
-// 조회 버튼 클릭시
-const searchData = () => {
-  console.log(shipId.value);
-  showTable.value = true;
-};
-
-// 모달 함수
-const handleSelectChange = (value) => {
-  console.log("Selected Ship Id:", value); // 선택된 값이 올바르게 출력되는지 확인
-  m_shipId.value = value; // 선택된 값을 직접 업데이트
-};
-
-const showModal = () => {
-  open.value = true;
-};
-const handleOk = () => {
-  console.log(m_shipId.value);
-  loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
-    open.value = false;
-  }, 2000);
-};
-const handleCancel = () => {
-  open.value = false;
-};
 </script>
 
 <style lang="less" scoped>
 .demo-dropdown-wrap :deep(.ant-dropdown-button) {
   margin-right: 8px;
   margin-bottom: 8px;
+}
+/* 우클릭 메뉴의 위치를 조정 */
+.a-dropdown {
+  position: absolute;
+}
+
+.context-menu-overlay {
+  position: absolute;
+  z-index: 1000;
+}
+
+.context-menu {
+  position: absolute;
+  z-index: 1000;
+  border: 1px solid #d9d9d9; /* 경계선 색상 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* 그림자 추가 */
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.context-menu .ant-menu-item {
+  background-color: transparent; /* 항목 배경 기본값 */
+  color: #333; /* 글자 색상 */
+}
+
+.context-menu .ant-menu-item:hover {
+  background-color: #e6f7ff; /* 항목 선택 시 배경색 */
 }
 </style>

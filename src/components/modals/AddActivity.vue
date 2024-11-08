@@ -1,7 +1,7 @@
 <template>
   <a-modal
     :open="open"
-    title="선박 등록"
+    title="새 활동 추가 / 수정"
     @ok="handleSubmit"
     @cancel="handleCancel"
   >
