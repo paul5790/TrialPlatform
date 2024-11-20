@@ -101,6 +101,8 @@
     :selectedTrialId="selectedTrialId"
     :selectedVersion="selectedVersion"
     :tasks="tasks"
+    :data="data"
+    :newOpen="newOpen"
     @update:open="isAddScheduleOpen = $event"
     @submit="handleAddScheduleSubmit"
     @openEditSchedule="isEditScheduleOpen = true"
@@ -135,8 +137,6 @@ import { getShipType } from "../api/ShipType.js";
 import { ExclamationCircleOutlined } from "@ant-design/icons-vue";
 import { createVNode } from "vue";
 import { Modal } from "ant-design-vue";
-
-import GanttChart from "../components/GanttChart.vue";
 import AddSchedule from "@/components/modals/AddSchedule.vue";
 import EditSchedule from "@/components/modals/schedule/EditSchedule.vue";
 import { useTasksStore } from "@/store/tasksStore";
@@ -146,11 +146,14 @@ const tasks = tasksStore.tasks;
 
 // 모달 변수
 const isAddScheduleOpen = ref(false);
+const newOpen = ref(null);
 const isEditScheduleOpen = ref(false);
+
 
 const showAddScheduleModal = () => {
   selectedTrialId.value = null;
   selectedVersion.value = null;
+  newOpen.value = true;
   isAddScheduleOpen.value = true;
 };
 
@@ -191,75 +194,6 @@ const handleCancel = () => {
   open.value = false;
 };
 
-// 간트차트 tasks 데이터
-// const tasks = ref([
-//   {
-//     startTime: Date.UTC(2024, 8, 26, 0, 0), // 시작 시간 (UTC)
-//     minute: 30, // 30분 지속
-//     name: "Speed test",
-//     id: "A-1",
-//     y: 0,
-//     color: '#ff5555'
-//   },
-//   {
-//     startTime: Date.UTC(2024, 8, 26, 0, 30), // 시작 시간
-//     minute: 15, // 15분 지속
-//     name: "Anchor test",
-//     // milestone: true,
-//     // dependency: "prototype",
-//     id: "G-1",
-//     y: 1,
-//     color: '#ff5555'
-//   },
-//   {
-//     startTime: Date.UTC(2024, 8, 26, 0, 45), // 시작 시간
-//     minute: 42, // 42분 지속
-//     name: "Steering test",
-//     // dependency: "proto_done",
-//     id: "A-2",
-//     y: 2,
-//     color: '#ff5555'
-//   },
-//   {
-//     startTime: Date.UTC(2024, 8, 26, 1, 27), // 시작 시간
-//     minute: 6, // 6분 지속
-//     name: "M/E running test",
-//     id: "B-18",
-//     y: 0,
-//     color: '#55ff55'
-//   },
-//   {
-//     startTime: Date.UTC(2024, 8, 26, 1, 33), // 시작 시간
-//     minute: 15, // 15분 지속
-//     name: "Steering test",
-//     // milestone: true,
-//     // dependency: "prototype_1",
-//     id: "A-2",
-//     y: 1,
-//     color: '#55ff55'
-//   },
-//   {
-//     startTime: Date.UTC(2024, 8, 26, 1, 48), // 시작 시간
-//     minute: 28, // 28분 지속
-//     name: "Speed test",
-//     // dependency: "proto_done_1",
-//     id: "A-1",
-//     y: 2,
-//     color: '#55ff55'
-//   }
-// ]);
-
-// tasksStore의 tasks 변경을 감지하고 Gantt 차트를 업데이트하는 watch 추가
-// watch(
-//   () => tasksStore.tasks,
-//   (newTasks) => {
-//     console.log("Tasks updated. You can now trigger GanttChart update here.");
-
-//     // GanttChart 업데이트 로직을 여기에 추가
-//   },
-//   { deep: true }
-// );
-
 
 // items 배열에 네모카드 정보를 넣음
 const items = ref([
@@ -279,17 +213,6 @@ const items = ref([
     totalTasks: 10,
     location: "15.234, -30.674",
   },
-  // { id: 3, shipId: 'SN2286', progress: 60, currentTask: 6, totalTasks: 10, location: '15.234, -30.679' },
-  // { id: 4, shipId: 'SN2287', progress: 60, currentTask: 6, totalTasks: 10, location: '15.234, -30.674' },
-  // { id: 5, shipId: 'SN2286', progress: 60, currentTask: 6, totalTasks: 10, location: '15.234, -30.679' },
-  // { id: 6, shipId: 'SN2287', progress: 60, currentTask: 6, totalTasks: 10, location: '15.234, -30.674' },
-  // { id: 7, shipId: 'SN2286', progress: 60, currentTask: 6, totalTasks: 10, location: '15.234, -30.679' },
-  // { id: 8, shipId: 'SN2287', progress: 60, currentTask: 6, totalTasks: 10, location: '15.234, -30.674' },
-  // { id: 9, shipId: 'SN2286', progress: 60, currentTask: 6, totalTasks: 10, location: '15.234, -30.679' },
-  // { id: 10, shipId: 'SN2287', progress: 60, currentTask: 6, totalTasks: 10, location: '15.234, -30.674' },
-  // { id: 11, shipId: 'SN2286', progress: 60, currentTask: 6, totalTasks: 10, location: '15.234, -30.679' },
-  // { id: 12, shipId: 'SN2287', progress: 60, currentTask: 6, totalTasks: 10, location: '15.234, -30.674' },
-  // 필요한 만큼 아이템을 추가
 ]);
 
 // 데이터 테이블
@@ -350,7 +273,21 @@ const fetchData = async () => {
       });
     });
 
-    console.log(data.value);
+    console.log('data.value', data.value);
+
+    // 조건 1: Trial Id가 SHI-SN1001-SEA인 version 출력
+    const versions1 = data.value
+      .filter((item) => item.trialId === 'SHI-SN1001-SEA') // 조건에 맞는 데이터 필터링
+      .map((item) => item.version); // version 값 추출
+
+    console.log('Versions for SHI-SN1001-SEA:', versions1);
+
+    // 조건 2: Trial Id가 SHI-SN1000-HABOR인 version 출력
+    const versions2 = data.value
+      .filter((item) => item.trialId === 'SHI-SN1000-HABOR') // 조건에 맞는 데이터 필터링
+      .map((item) => item.version); // version 값 추출
+
+    console.log('Versions for SHI-SN1000-HABOR:', versions2);
   } catch (error) {
     console.error(error);
   }
@@ -506,7 +443,7 @@ const handleEdit = () => {
   selectedTrialId.value = selectedRow.value.trialId;
   selectedVersion.value = selectedRow.value.version;
   console.log(selectedVersion.value);
-
+  newOpen.value = false;
   isAddScheduleOpen.value = true;
   menuVisible.value = false;
 };

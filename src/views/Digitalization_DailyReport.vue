@@ -73,7 +73,7 @@
   />
 
   <!-- 필터 모달 컴포넌트 -->
-  <ShipFilter
+  <ReportFilter
     :open="filterModalVisible"
     :shipTypeList="shipTypeList"
     @update:open="handleFilterModalToggle"
@@ -92,7 +92,7 @@ import {
 import { ref, h, reactive, computed, onMounted, onBeforeUnmount } from "vue";
 import { cloneDeep } from "lodash-es";
 import ReportUploadModal from "@/components/modals/AddReport.vue";
-import ShipFilter from "@/components/Filter/ShipFilter.vue";
+import ReportFilter from "@/components/Filter/ReportFilter.vue";
 import { getAllReports } from "@/api/DailyReport/Report.js";
 import { getShipType } from "../api/ShipType.js";
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
@@ -211,37 +211,27 @@ const filteredData = computed(() => {
       console.log("value : ", value);
       console.log("item", item);
 
-      // rescueCapa 필터 처리
-      if (key === "rescueCapa") {
-        const minValue = parseFloat(value.min) || -Infinity; // 최소값 없으면 -Infinity
-        const maxValue = parseFloat(value.max) || Infinity; // 최대값 없으면 Infinity
-        const itemValue = parseFloat(item[key]) || 0; // 비교할 값, 없으면 0
+      // boardingTime, deboardingTime 필터 처리
+      if (key === "createdDate") {
+        console.log("ㅇㅇ 적용");
+        // min과 max 값이 유효한 날짜 문자열로 전달되었는지 확인하고 Date 객체로 변환
+        const minValue = value.min ? new Date(value.min) : null; // 최소값이 없으면 null
+        const maxValue = value.max ? new Date(value.max) : null; // 최대값이 없으면 null
+        const itemValue = item['dailyReportCreatedDate'] ? new Date(item['dailyReportCreatedDate']) : null;
 
-        console.log(
-          "minValue:",
-          minValue,
-          "maxValue:",
-          maxValue,
-          "itemValue:",
-          itemValue
-        );
+        console.log("minValue:", minValue, "maxValue:", maxValue, "itemValue:", itemValue);
 
-        // item의 값이 min과 max 범위 내에 있는지 확인
-        return itemValue >= minValue && itemValue <= maxValue;
-      }
+        if (!itemValue) return false; // item 값이 없으면 필터 조건에 맞지 않음
 
-      // shipType 필터 처리 (배열이거나 비어있는 경우)
-      if (key === "shipType") {
-        if (Array.isArray(value) && value.length === 0) {
-          // 배열이 비어있는 경우 모든 데이터를 포함
-          console.log("Empty shipType array, showing all data.");
-          return true;
-        }
-        if (Array.isArray(value)) {
-          // 배열에 포함된 값 중 하나라도 일치하면 true 반환
-          console.log("Checking shipType:", value, "against", item[key]);
-          return value.includes(item[key]);
-        }
+        // 초를 00으로 설정
+        if (minValue) minValue.setSeconds(0, 0);
+        if (maxValue) maxValue.setSeconds(0, 0);
+        if (itemValue) itemValue.setSeconds(0, 0);
+
+        console.log("minValue:", minValue, "maxValue:", maxValue, "itemValue:", itemValue);
+
+        // 범위 조건에서 null 값 처리
+        return (!minValue || itemValue >= minValue) && (!maxValue || itemValue <= maxValue);
       }
 
       // 일반 필터 처리 (문자열 일치 여부)
@@ -267,7 +257,6 @@ const formState = reactive({
 
 // 필터 모달 열기
 const showFilterModal = async () => {
-  await getShipTypeList();
   filterModalVisible.value = true;
 };
 

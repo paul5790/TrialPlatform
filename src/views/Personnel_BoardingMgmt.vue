@@ -88,8 +88,10 @@
 
   <!-- 문서 업로드 모달 컴포넌트 -->
   <BoardingUploadModal
+    ref="addBoarding"
     :open="open"
     :formState="formState"
+    :data="data"
     @update:open="handleModalToggle"
     @submit="handleSubmit"
     @refreshData="reFetchData"
@@ -122,6 +124,8 @@ import { getTrial } from "@/api/Trial.js";
 import { getBoarding } from "@/api/Personnel/Boarding.js"
 import { createVNode } from 'vue';
 import { Modal } from 'ant-design-vue';
+
+const addBoarding = ref(null);
 
 
 const trialIdItems = ref([]);
@@ -169,7 +173,7 @@ const fetchData = async (trial) => {
     
     response.forEach((board, index) => {
       data.value.push({
-        personnelIdx: board.boardId || "",
+        personnelIdx: board.personnelIdx || "",
         name: board.name || "",
         company: board.company || "",
         boardingTime: board.boardingTime || "",
@@ -179,16 +183,11 @@ const fetchData = async (trial) => {
         roomNo: board.roomNo || "",
         boardingStatus: board.boardingStatus || "",
       });
-
-      // yardName이 존재하면 Set에 추가
-      if (ship.boardingStatus) {
-        status.add(ship.boardingStatus);
-      }
     });
 
     // Set을 배열로 변환하여 yardList에 저장
     statusList.value = Array.from(status);
-    console.log(statusList.value);
+    console.log('data', data.value);
   } catch (error) {
     console.error(error);
   }
@@ -253,9 +252,11 @@ const filteredData = computed(() => {
       // boardingTime, deboardingTime 필터 처리
       if (key === "boardingTime" || key === "deboardingTime") {
         // min과 max 값이 유효한 날짜 문자열로 전달되었는지 확인하고 Date 객체로 변환
-        const minValue = value.min ? new Date(value.min) : new Date(-8640000000000000); // 최소값이 없으면 -Infinity에 해당하는 날짜
-        const maxValue = value.max ? new Date(value.max) : new Date(8640000000000000); // 최대값이 없으면 +Infinity에 해당하는 날짜
+        const minValue = value.min ? new Date(value.min) : null; // 최소값이 없으면 null
+        const maxValue = value.max ? new Date(value.max) : null; // 최대값이 없으면 null
         const itemValue = item[key] ? new Date(item[key]) : null;
+
+        console.log("itemValue", itemValue);
 
         if (!itemValue) return false; // item 값이 없으면 필터 조건에 맞지 않음
 
@@ -266,8 +267,8 @@ const filteredData = computed(() => {
 
         console.log("minValue:", minValue, "maxValue:", maxValue, "itemValue:", itemValue);
 
-        // item의 값이 min과 max 범위 내에 있는지 확인
-        return itemValue >= minValue && itemValue <= maxValue;
+        // 범위 조건에서 null 값 처리
+        return (!minValue || itemValue >= minValue) && (!maxValue || itemValue <= maxValue);
       }
 
       // shipType 필터 처리 (배열이거나 비어있는 경우)
@@ -345,8 +346,13 @@ const onRowContextMenu = (record, event) => {
 
 // 모달 함수
 const showModal = () => {
-  // 폼 상태 초기화
   resetFormState(); // 폼 초기화
+    // 폼 상태 초기화
+  if (addBoarding.value && addBoarding.value.dataInit) {
+    addBoarding.value.dataInit();
+  } else {
+    console.error("dataInit 메서드가 없습니다.");
+  }
   open.value = true;
 };
 

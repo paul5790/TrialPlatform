@@ -10,140 +10,65 @@
       <a-form layout="vertical">
         <div class="form-item" style="margin-top: 30px;">
           <a-checkbox
-            :checked="filters.name.checked"
-            @change="toggleFilter('name')"
+            :checked="filters.trialId.checked"
+            @change="toggleFilter('trialId')"
             class="form-label"
-            >Name</a-checkbox
+            >Trial Id</a-checkbox
           >
           <a-input
-            v-model:value="filters.name.value"
-            :disabled="!filters.name.checked"
+            v-model:value="filters.trialId.value"
+            :disabled="!filters.trialId.checked"
             class="form-input"
-            placeholder="Enter Name"
+            placeholder="Enter Trial Id"
           />
         </div>
 
+        <!-- Created Date (min - max) with DatePicker -->
         <div class="form-item">
           <a-checkbox
-            :checked="filters.company.checked"
-            @change="toggleFilter('company')"
-            class="form-label"
-            >Company</a-checkbox
-          >
-          <a-input
-            v-model:value="filters.company.value"
-            :disabled="!filters.company.checked"
-            class="form-input"
-            placeholder="Enter Company"
-          />
-        </div>
-
-        <!-- Boarding Time (min - max) with DatePicker -->
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.boardingTime.checked"
-            @change="toggleFilter('boardingTime')"
+            :checked="filters.createdDate.checked"
+            @change="toggleFilter('createdDate')"
             class="form-label"
           >
-            Boarding Time
+            Created Date
           </a-checkbox>
 
           <div>
             <a-date-picker
-              v-model:value="filters.boardingTime.min"
-              :disabled="!filters.boardingTime.checked"
+              v-model:value="filters.createdDate.min"
+              :disabled="!filters.createdDate.checked"
               show-time
               format="YYYY-MM-DD HH:mm"
               placeholder="min"
               style="margin-bottom: 7px; width: 100%;"
             />
             <a-date-picker
-              v-model:value="filters.boardingTime.max"
-              :disabled="!filters.boardingTime.checked"
+              v-model:value="filters.createdDate.max"
+              :disabled="!filters.createdDate.checked"
               show-time
               format="YYYY-MM-DD HH:mm"
               placeholder="max"
               style="width: 100%;"
             />
           </div>
+        </div>
+
+        
+        <div class="form-item">
+          <a-checkbox
+            :checked="filters.creator.checked"
+            @change="toggleFilter('creator')"
+            class="form-label"
+            >Creator</a-checkbox
+          >
+          <a-input
+            v-model:value="filters.creator.value"
+            :disabled="!filters.creator.checked"
+            class="form-input"
+            placeholder="Enter Creator"
+          />
         </div>
         
-        <!-- Deboarding Time (min - max) with DatePicker -->
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.deboardingTime.checked"
-            @change="toggleFilter('deboardingTime')"
-            class="form-label"
-          >
-            Deboarding Time
-          </a-checkbox>
-
-          <div>
-            <a-date-picker
-              v-model:value="filters.deboardingTime.min"
-              :disabled="!filters.deboardingTime.checked"
-              show-time
-              format="YYYY-MM-DD HH:mm"
-              placeholder="min"
-              style="margin-bottom: 7px; width: 100%;"
-            />
-            <a-date-picker
-              v-model:value="filters.deboardingTime.max"
-              :disabled="!filters.deboardingTime.checked"
-              show-time
-              format="YYYY-MM-DD HH:mm"
-              placeholder="max"
-              style="width: 100%;"
-            />
-          </div>
-        </div>
-
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.workDetails.checked"
-            @change="toggleFilter('workDetails')"
-            class="form-label"
-            >Work Details</a-checkbox
-          >
-          <a-input
-            v-model:value="filters.workDetails.value"
-            :disabled="!filters.workDetails.checked"
-            class="form-input"
-            placeholder="Enter Work Details"
-          />
-        </div>
-
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.roomNo.checked"
-            @change="toggleFilter('roomNo')"
-            class="form-label"
-            >Room No</a-checkbox
-          >
-          <a-input
-            v-model:value="filters.roomNo.value"
-            :disabled="!filters.roomNo.checked"
-            class="form-input"
-            placeholder="Enter Room No"
-          />
-        </div>
-
-        <div class="form-item">
-          <a-checkbox
-            :checked="filters.boardingStatus.checked"
-            @change="toggleFilter('boardingStatus')"
-            class="form-label"
-            >Boarding Status</a-checkbox
-          >
-          <a-select
-            v-model:value="filters.boardingStatus.value"
-            :disabled="!filters.boardingStatus.checked"
-            placeholder="Enter Boarding Status"
-            mode="multiple"
-            class="form-input"
-          >
-          </a-select>
-        </div>
 
         <div class="divider"></div>
 
@@ -179,13 +104,9 @@ const emit = defineEmits(["update:open", "filter"]);
 
 // 필터 상태를 객체로 관리
 const filters = reactive({
-  name: { checked: false, value: "" },
-  company: { checked: false, value: "" },
-  boardingTime: { checked: false, min: "", max: "" },
-  deboardingTime: { checked: false, min: "", max: "" },
-  workDetails: { checked: false, value: "" },
-  roomNo: { checked: false, value: "" },
-  boardingStatus: { checked: false, value: [] },
+  trialId: { checked: false, value: "" },
+  creator: { checked: false, value: "" },
+  createdDate: { checked: false, min: "", max: "" },
   search: { checked: false, value: "" },
 });
 
@@ -206,8 +127,8 @@ const applyFilter = () => {
     console.log("filter.checked", filter.checked);
 
     if (filter.checked) {
-      if (key === "boardingTime" || key === "deboardingTime") {
-        // boardingTime일 경우 min과 max를 함께 전달
+      if (key === "createdDate") {
+        // createdDate일 경우 min과 max를 함께 전달
         if (filter.min || filter.max) {
           appliedFilters[key] = { min: filter.min, max: filter.max };
         }

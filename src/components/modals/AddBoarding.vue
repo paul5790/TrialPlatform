@@ -53,6 +53,7 @@ import { getAllPersonnel } from "@/api/Personnel/Personnel.js";
 const props = defineProps({
   open: Boolean, // 부모로부터 받는 open 상태
   formState: Object, // 폼 데이터 상태
+  data: Object,
 });
 
 const formState = reactive({
@@ -85,6 +86,14 @@ watch(
         trialTypes: [],
       });
     }
+  },
+  { immediate: true, deep: true } // 컴포넌트가 마운트될 때 즉시 실행
+);
+
+watch(
+  () => props.data, // 감시할 대상
+  (newVal) => {
+    console.log("send data : ", props.data);
   },
   { immediate: true, deep: true } // 컴포넌트가 마운트될 때 즉시 실행
 );
@@ -140,8 +149,12 @@ const data = ref([]); // 테이블에 사용할 데이터
 const fetchData = async () => {
   try {
     const response = await getAllPersonnel();
-    console.log("맞음?", response);
+    
     data.value = [];
+
+    const nodataIdxs = props.data.map((item) => item.personnelIdx);
+
+    console.log('nodataIdxs',nodataIdxs);
 
     // personnelIdx를 기준으로 오름차순 정렬
     const sortedResponse = response.sort((a, b) => {
@@ -150,17 +163,21 @@ const fetchData = async () => {
       return idxA - idxB; // 오름차순 정렬
     });
 
-    sortedResponse.forEach((personnel, index) => {
-      data.value.push({
-        personnelIdx: personnel.personnelIdx || 0,
-        name: personnel.name || "",
-        company: personnel.company || "",
-        department: personnel.department || "",
-        role: personnel.role || "",
-        phone: personnel.phone || "",
-        email: personnel.email || "",
-      });
+    // nodata에 없는 personnelIdx 값만 data.value에 추가
+    sortedResponse.forEach((personnel) => {
+      if (!nodataIdxs.includes(personnel.personnelIdx)) {
+        data.value.push({
+          personnelIdx: personnel.personnelIdx || 0,
+          name: personnel.name || "",
+          company: personnel.company || "",
+          department: personnel.department || "",
+          role: personnel.role || "",
+          phone: personnel.phone || "",
+          email: personnel.email || "",
+        });
+      }
     });
+    
     console.log(data.value);
   } catch (error) {
     console.error(error);
@@ -345,6 +362,17 @@ const handleSubmit = async () => {
 const handleCancel = () => {
   emit("update:open", false); // 부모에게 모달을 닫으라고 알림
 };
+
+// 그래프 초기화 메서드
+const dataInit = () => {
+  console.log("dataInit 메서드 실행됨!");
+  fetchData();
+};
+
+defineExpose({
+  dataInit,
+});
+
 </script>
 
 <style scoped>

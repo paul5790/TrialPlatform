@@ -34,14 +34,14 @@
         </div>
 
         <!-- 스케줄 자동 생성 버튼 -->
-        <a-button @click="autoGenerateSchedule" style="margin-right: 10px">
-          스케줄 자동 생성
-        </a-button>
+        <!-- <a-button @click="autoGenerateSchedule" style="margin-right: 10px">
+          스케줄 생성
+        </a-button> -->
 
         <!-- Task 추가 -->
-        <a-button type="primary" @click="showAddTaskModal"
+        <!-- <a-button type="primary" @click="showAddTaskModal"
           >Task 추가하기</a-button
-        >
+        > -->
       </div>
     </a-form>
 
@@ -56,7 +56,12 @@
 
     <!-- GanttChart와 우클릭 메뉴로 항목 편집 모달을 여는 기능 -->
     <a-dropdown :trigger="['contextmenu']">
-      <GanttChart :tasks="tasks" :selectedTrialId="selectedTrialId" :selectedVersion="selectedVersion" />
+      <GanttChart
+        ref="ganttPage"
+        :tasks="tasks"
+        :selectedTrialId="selectedTrialId"
+        :selectedVersion="selectedVersion"
+      />
       <template #overlay>
         <a-menu>
           <a-menu-item key="1" @click="editSchedule"
@@ -87,27 +92,43 @@ const props = defineProps({
   selectedTrialId: String,
   selectedVersion: String,
   tasks: Array,
+  data: Array,
+  newOpen: Boolean,
 });
 
 // selectedTrialId 값 변경 감지
 watch(
   [() => props.selectedTrialId, () => props.selectedVersion],
   ([newTrialId, newVersion]) => {
-      if (newTrialId === null || newVersion === null) {
-      console.log("null 값이 감지되었습니다.");
-    }
+    if (newTrialId === null || newVersion === null) {
+      selectedTrialId.value = null;
+      selectedVersion.value = null;
+    } else {
       selectedTrialId.value = props.selectedTrialId;
       selectedVersion.value = props.selectedVersion;
-      console.log("1번코드 실행!");
-    
+      autoGenerateSchedule();
+    }
   }
 );
 
 const emit = defineEmits(["update:open", "submit", "openEditSchedule"]);
 
 const trialIdItems = ref([]);
+const versionItems = ref(["A"]);
 const selectedTrialId = ref();
 const selectedVersion = ref();
+
+// selectedTrialId 값 변경 감지
+watch([() => selectedTrialId.value], ([newTrialId, newVersion]) => {
+  console.log("선택선택", props.data);
+  
+  const versions1 = props.data
+    .filter((item) => item.trialId === selectedTrialId.value) // 조건에 맞는 데이터 필터링
+    .map((item) => item.version); // version 값 추출
+
+  console.log("Versions for SHI-SN1001-SEA:", versions1);
+  versionItems.value = versions1;
+});
 
 // Trial ID List 가져오기
 const getTrialList = async () => {
@@ -124,12 +145,15 @@ const getTrialList = async () => {
 };
 getTrialList();
 
-const versionItems = ref(["A", "B", "C"]);
-
 const addTaskModalOpen = ref(false); // Task 추가 모달 상태
 
+const ganttPage = ref(null);
 const autoGenerateSchedule = () => {
-  // 스케줄 자동 생성 로직
+  if (ganttPage.value && ganttPage.value.drawGantt) {
+    ganttPage.value.drawGantt();
+  } else {
+    console.error("drawGantt 메서드가 없습니다.");
+  }
 };
 
 // Task 추가 모달 열기
@@ -156,6 +180,8 @@ const handleSubmit = () => {
 
 const handleCancel = () => {
   emit("update:open", false); // 모달 닫기
+  selectedTrialId.value = null;
+  selectedVersion.value = null;
 };
 
 // 항목 편집 모달 열기
